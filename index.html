@@ -10367,7 +10367,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 /******/ ])["default"];
 });</script>
 <script>
-const APP_VER = "20261020dev";
+const APP_VER = "20261020dev2";
 const DB_NAME = "shams-dev-stockcard", CACHE_PFX = "shamsdev-", LS_PFX = "shamsdev-", FLAVOR = "dev";
 </script>
 <script>
@@ -10853,9 +10853,13 @@ $('#setupBtn').onclick = () => { catMsgTarget = '#setupMsg'; $('#catInput').clic
 let catMsgTarget = '#catMsg';
 $('#catInput').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; const msg = $(catMsgTarget); catMsgTarget = '#catMsg'; if (!f) return;
-  msg.innerHTML = '<div class="alert warn">جاري القراءة…</div>';
+  const t0 = Date.now(); let stepTxt = 'بفتح الملف';
+  const paint = () => { msg.innerHTML = `<div class="alert warn">جاري القراءة… ${Math.round((Date.now() - t0) / 1000)} ث<br><span class="muted">${stepTxt}</span></div>`; };
+  paint(); const tick = setInterval(paint, 1000);
+  const step = async t => { stepTxt = t; paint(); await new Promise(r => setTimeout(r, 0)); };
   try {
-    const {rows, workers, pos, moves, types, site, qsp} = await readStockSheet(f);
+    const {rows, workers, pos, moves, types, site, qsp} = await readStockSheet(f, step);
+    clearInterval(tick);
     if (rows.length < 10) throw new Error('لقيت ' + rows.length + ' صنف بس — اتأكد إنه ملف المخزن.');
     const d = new Date(f.lastModified || Date.now()); const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     await setMeta('catalog', {rows, date: ds, src: f.name});
@@ -10865,7 +10869,7 @@ $('#catInput').onchange = async e => {
     loadCat(rows, ds, f.name); fillRcpts(); fillSup();
     const okHtml = `<div class="alert ok"><b>✓ اتحدّث الدليل</b>${rows.length} صنف${workers.length ? ' و' + workers.length + ' اسم عامل' : ''}${moves ? ' و' + moves.length.toLocaleString('en-US') + ' حركة' : ''} من «${esc(f.name)}» — محفوظين على الموبايل ده بس.${moves ? '' : '<br>⚠ ما لقيتش شيت «المدخلات»، فكارت الصنف مش هيبقى فيه حركات.'}</div>`;
     msg.innerHTML = okHtml; $('#catMsg').innerHTML = okHtml; if (!$('#pScan').classList.contains('hide')) toast('✓ الدليل جاهز — تقدر تعمل اسكان');
-  } catch (x) { msg.innerHTML = `<div class="alert bad"><b>مقدرتش أقرا الملف</b>${esc(x.message)}</div>`; }
+  } catch (x) { clearInterval(tick); msg.innerHTML = `<div class="alert bad"><b>مقدرتش أقرا الملف</b>${esc(x.message)}</div>`; }
 };
 async function unzip(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf); let eocd = -1;
@@ -10883,7 +10887,8 @@ async function unzip(buf) {
   }
   return out;
 }
-async function readStockSheet(f) {
+async function readStockSheet(f, step = async () => {}) {
+  await step('بفتح الملف (' + (f.size / 1048576).toFixed(1) + ' MB)');
   const z = await unzip(await f.arrayBuffer()); const P = s => new DOMParser().parseFromString(s, 'application/xml');
   if (!z['xl/workbook.xml']) throw new Error('الملف مش ملف Excel (.xlsx).');
   const wb = P(await z['xl/workbook.xml']()); const rels = P(await z['xl/_rels/workbook.xml.rels']());
@@ -10895,13 +10900,25 @@ async function readStockSheet(f) {
     const t = rel.getAttribute('Target'); return t.startsWith('/') ? t.slice(1) : 'xl/' + t.replace(/^\.\//, ''); };
   const target = sheetPath('الرصيد والجرد');
   if (!target || !z[target]) throw new Error('مفيش ورقة اسمها «الرصيد والجرد» في الملف.');
+  // ---- fast regex readers (DOMParser is slow and memory-hungry on phones for multi-MB sheets)
+  const xdec = t => t.replace(/&(#x?[0-9a-fA-F]+|amp|lt|gt|quot|apos);/g, (m, e) => e === 'amp' ? '&' : e === 'lt' ? '<' : e === 'gt' ? '>' : e === 'quot' ? '"' : e === 'apos' ? "'" : String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)));
   let sst = [];
-  if (z['xl/sharedStrings.xml']) { const s = P(await z['xl/sharedStrings.xml']()); sst = [...s.getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')); }
-  const doc = P(await z[target]());
-  const val = c => { const t = c.getAttribute('t'); if (t === 'inlineStr') return [...c.getElementsByTagName('t')].map(x => x.textContent).join(''); const v = c.getElementsByTagName('v')[0]; if (!v) return null; const s = v.textContent; if (t === 's') return sst[+s]; if (t === 'str' || t === 'e') return s; if (t === 'b') return s === '1'; return s === '' ? null : Number(s); };
-  const colOf = ref => ref.replace(/\d+/g, '');
-  const grid = new Map();
-  for (const r of doc.getElementsByTagName('row')) { const rn = +r.getAttribute('r'); const m = {}; for (const c of r.getElementsByTagName('c')) m[colOf(c.getAttribute('r'))] = val(c); grid.set(rn, m); }
+  await step('بقرا النصوص');
+  if (z['xl/sharedStrings.xml']) { const x = await z['xl/sharedStrings.xml'](); const reSi = /<si>([\s\S]*?)<\/si>|<si\/>/g, reT = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g; let m;
+    while ((m = reSi.exec(x))) { let str = ''; if (m[1]) { let t; reT.lastIndex = 0; while ((t = reT.exec(m[1]))) str += t[1]; } sst.push(xdec(str)); } }
+  function fastRows(xml, want) { // want: Set of column letters; returns [[rowNo, {COL: value}]]
+    const out = [], reRow = /<row [^>]*?r="(\d+)"[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g, reC = /<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let m; while ((m = reRow.exec(xml))) { if (!m[2]) continue; const o = {}; let c; reC.lastIndex = 0;
+      while ((c = reC.exec(m[2]))) { if (want && !want.has(c[1])) continue; const body = c[3]; if (!body) continue; const tm = /t="(\w+)"/.exec(c[2]); const t = tm ? tm[1] : '';
+        let v;
+        if (t === 'inlineStr') v = xdec((body.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).map(x => x.replace(/<[^>]+>/g, '')).join(''));
+        else { const vm = /<v>([\s\S]*?)<\/v>/.exec(body); if (!vm) continue; v = vm[1];
+          if (t === 's') v = sst[+v]; else if (t === 'str' || t === 'e') v = xdec(v); else if (t === 'b') v = v === '1'; else v = v === '' ? null : Number(v); }
+        o[c[1]] = v; }
+      out.push([+m[1], o]); }
+    return out; }
+  await step('بقرا «الرصيد والجرد»');
+  const grid = new Map(fastRows(await z[target]()));
   // header row: find by titles (row 5 in the current file)
   const want = {code: 'كود الصنف', name: 'اسم الصنف', unit: 'الوحدة', bal: 'الرصيد الدفتري', phys: 'الجرد الفعلي', pend: 'صرف لم يُسجل', loc: 'كود الموقع'};
   let hr = null, cols = {};
@@ -10914,32 +10931,19 @@ async function readStockSheet(f) {
   if (rows.length && rows.every(r => r[1] === '' && r[3] === null)) throw new Error('الملف مفيهوش قيم محسوبة. افتحه في Excel واحفظه وبعدين جرّب تاني.');
   // workers (ورقة «العمال» — عمود «اسم العامل»)، اختياري
   let workers = [];
-  try { const wp = sheetPath('العمال'); if (wp && z[wp]) { const wd = P(await z[wp]()); let col = null;
-    for (const r of wd.getElementsByTagName('row')) { const m = {}; for (const c of r.getElementsByTagName('c')) m[colOf(c.getAttribute('r'))] = val(c);
+  try { const wp = sheetPath('العمال'); if (wp && z[wp]) { await step('بقرا «العمال»'); let col = null;
+    for (const [, m] of fastRows(await z[wp]())) {
       if (!col) { for (const [c, v] of Object.entries(m)) if (typeof v === 'string' && v.trim() === 'اسم العامل') col = c; continue; }
       const v = m[col]; if (typeof v === 'string' && v.trim()) workers.push(v.trim()); } } } catch (e) {}
-  // ---- fast regex reader for big sheets (المدخلات can be 10+ MB)
-  const xdec = t => t.replace(/&(#x?[0-9a-fA-F]+|amp|lt|gt|quot|apos);/g, (m, e) => e === 'amp' ? '&' : e === 'lt' ? '<' : e === 'gt' ? '>' : e === 'quot' ? '"' : e === 'apos' ? "'" : String.fromCodePoint(e[1] === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)));
-  function fastRows(xml, want) { // want: Set of column letters; returns [[rowNo, {COL: value}]]
-    const out = [], reRow = /<row [^>]*?r="(\d+)"[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g, reC = /<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
-    let m; while ((m = reRow.exec(xml))) { if (!m[2]) continue; const o = {}; let c; reC.lastIndex = 0;
-      while ((c = reC.exec(m[2]))) { if (want && !want.has(c[1])) continue; const body = c[3]; if (!body) continue; const tm = /t="(\w+)"/.exec(c[2]); const t = tm ? tm[1] : '';
-        let v;
-        if (t === 'inlineStr') v = xdec((body.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).map(x => x.replace(/<[^>]+>/g, '')).join(''));
-        else { const vm = /<v>([\s\S]*?)<\/v>/.exec(body); if (!vm) continue; v = vm[1];
-          if (t === 's') v = sst[+v]; else if (t === 'str' || t === 'e') v = xdec(v); else if (t === 'b') v = v === '1'; else v = v === '' ? null : Number(v); }
-        o[c[1]] = v; }
-      out.push([+m[1], o]); }
-    return out; }
   const findHdr = (rws, names) => { for (const [rn, o] of rws.slice(0, 15)) { const inv = {}; for (const [c, v] of Object.entries(o)) if (typeof v === 'string') inv[v.trim()] = c; if (names.every(n => inv[n])) return {rn, col: inv}; } return null; };
   // movement types and signs («الإعدادات»)
   let types = {}, site = '';
-  try { const sp = sheetPath('الإعدادات'); if (sp && z[sp]) { const rws = fastRows(await z[sp]()); const h = findHdr(rws, ['نوع الحركة', 'الإشارة', 'التصنيف']);
+  try { const sp = sheetPath('الإعدادات'); if (sp && z[sp]) { await step('بقرا «الإعدادات»'); const rws = fastRows(await z[sp]()); const h = findHdr(rws, ['نوع الحركة', 'الإشارة', 'التصنيف']);
     if (h) for (const [rn, o] of rws) { if (rn <= h.rn) continue; const nm = o[h.col['نوع الحركة']], sg = o[h.col['الإشارة']]; if (typeof nm === 'string' && (sg === 1 || sg === -1)) types[nm.trim()] = [sg, String(o[h.col['التصنيف']] || '')]; }
     for (const [, o] of rws) for (const [c, v] of Object.entries(o)) if (v === 'اسم الموقع') { const nx = String.fromCharCode(c.charCodeAt(0) + 1); if (o[nx]) site = String(o[nx]); } } } catch (e) {}
   // all movements («المدخلات»)
   let moves = null;
-  try { const mp = sheetPath('المدخلات'); if (mp && z[mp]) { const rws = fastRows(await z[mp]());
+  try { const mp = sheetPath('المدخلات'); if (mp && z[mp]) { await step('بقرا كل الحركات من «المدخلات» — دي أطول خطوة'); const rws = fastRows(await z[mp]());
     const h = findHdr(rws, ['كود الصنف', 'الكمية', 'التاريخ', 'نوع الحركة']);
     if (h) { const C = h.col; moves = [];
       for (const [rn, o] of rws) { if (rn <= h.rn) continue; const code = o[C['كود الصنف']]; if (code === null || code === undefined || code === '') continue;
@@ -10948,18 +10952,19 @@ async function readStockSheet(f) {
           String(o[C['بيان الحركة']] ?? '').trim(), String(o[C['الجهة / المورد']] ?? '').trim(), String(o[C['أمر التوريد PO']] ?? '').trim(), rn, String(o[C['المجموعة']] ?? '').trim()]); } } } } catch (e) { moves = null; }
   // issues still pending in «صرف سريع بالاسكانر» (not «نعم»)
   let qsp = [];
-  try { const qp = sheetPath('صرف سريع بالاسكانر'); if (qp && z[qp]) { const rws = fastRows(await z[qp]()); const h = findHdr(rws, ['كود الصنف (اسكان)', 'الكمية المصروفة']);
+  try { const qp = sheetPath('صرف سريع بالاسكانر'); if (qp && z[qp]) { await step('بقرا «صرف سريع بالاسكانر»'); const rws = fastRows(await z[qp]()); const h = findHdr(rws, ['كود الصنف (اسكان)', 'الكمية المصروفة']);
     if (h) { const C = h.col; for (const [rn, o] of rws) { if (rn <= h.rn) continue; const code = o[C['كود الصنف (اسكان)']]; const q = Number(o[C['الكمية المصروفة']]);
       if (!code || !(q > 0) || String(o[C['اتسجل على السيستم؟']] ?? '').trim() === 'نعم') continue;
       qsp.push([String(code).trim(), typeof o[C['التاريخ']] === 'number' ? o[C['التاريخ']] : null, q, String(o[C['المستلم / الجهة']] ?? ''), String(o[C['رقم طلب الصرف']] ?? ''), rn]); } } } } catch (e) {}
   // purchase orders («أوامر التوريد»): PO, code, supplier, PO qty, received, remaining — optional
   let pos = [];
-  try { const pp = sheetPath('أوامر التوريد'); if (pp && z[pp]) { const pd = P(await z[pp]()); let hr2 = null, c2 = {};
+  try { const pp = sheetPath('أوامر التوريد'); if (pp && z[pp]) { await step('بقرا «أوامر التوريد»'); let hr2 = null, c2 = {};
     const want2 = {po: 'أمر التوريد PO', code: 'كود الصنف', sup: 'المورد', qty: 'كمية أمر التوريد', rec: 'المستلم', rem: 'المتبقي'};
-    for (const r of pd.getElementsByTagName('row')) { const m = {}; for (const c of r.getElementsByTagName('c')) m[colOf(c.getAttribute('r'))] = val(c);
+    for (const [, m] of fastRows(await z[pp]())) {
       if (!hr2) { const inv = {}; for (const [c, v] of Object.entries(m)) if (typeof v === 'string') inv[v.trim()] = c; if (inv[want2.po] && inv[want2.code]) { hr2 = 1; for (const k in want2) c2[k] = inv[want2[k]]; } continue; }
       const po = m[c2.po], code = m[c2.code]; if (po === null || po === undefined || po === '' || !code) continue;
       pos.push({po: String(po), code: String(code), sup: String(m[c2.sup] ?? ''), qty: num(m[c2.qty]) || 0, rec: num(m[c2.rec]) || 0, rem: num(m[c2.rem]) ?? 0}); } } } catch (e) {}
+  await step('بحفظ على الموبايل');
   return {rows, workers: [...new Set(workers)], pos, moves, types, site, qsp};
 }
 
