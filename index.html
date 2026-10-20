@@ -238,6 +238,8 @@ body.rcv #scanBtn{background:var(--ok)}
     <button class="btn" id="installBtn" style="width:100%" disabled>⬇️ ثبّت التطبيق على الموبايل</button>
     <p class="muted" id="installHint">على آيفون: افتح من Safari ← زرار المشاركة ⬆️ ← «إضافة إلى الشاشة الرئيسية».</p>
     <button class="btn ghost" id="clearExpBtn" style="width:100%">🧹 امسح العمليات اللي اتصدّرت (بعد ما تتأكد إنها اتلصقت في الشيت)</button>
+    <button class="btn ghost" id="updBtn" style="width:100%">🔄 حدّث البرنامج (محتاج نت)</button>
+    <p class="muted" id="updInfo">بيجيب آخر نسخة من البرنامج بس — العمليات المحفوظة ودليل الأصناف مش بيتمسحوا.</p>
     <p class="muted" id="storeInfo"></p>
   </div>
 </section>
@@ -10365,7 +10367,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 /******/ ])["default"];
 });</script>
 <script>
-const APP_VER = "20261015dev";
+const APP_VER = "20261020dev";
 const DB_NAME = "shams-dev-stockcard", CACHE_PFX = "shamsdev-", LS_PFX = "shamsdev-", FLAVOR = "dev";
 </script>
 <script>
@@ -10435,7 +10437,21 @@ addEventListener('online', netUI); addEventListener('offline', netUI); netUI();
 async function swSetup() {
   if (!('serviceWorker' in navigator)) { $('#offPill').textContent = '⚠ المتصفح ده مش بيدعم العمل بدون نت'; return; }
   try {
-    await navigator.serviceWorker.register('sw.js');
+    const hadCtl = !!navigator.serviceWorker.controller;
+    const reg0 = await navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'});
+    if (!swSetup.wired) {
+      swSetup.wired = true;
+      // a new version took over → reload once (only if nothing is being typed)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadCtl || swSetup.reloading) return;
+        const busy = !$('#formCard').classList.contains('hide');
+        if (busy) { toast('⬆️ فيه نسخة جديدة — هتشتغل أول ما تقفل التطبيق وتفتحه', 5000); return; }
+        swSetup.reloading = true; location.reload();
+      });
+      const check = () => { if (navigator.onLine) reg0.update().catch(() => {}); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+      check();
+    }
     const reg = await navigator.serviceWorker.ready;
     const ok = await caches.has(CACHE_PFX + APP_VER);
     $('#offPill').textContent = ok ? '✓ جاهز يشتغل بدون نت' : 'جاري التجهيز للعمل بدون نت…';
@@ -10443,6 +10459,18 @@ async function swSetup() {
     if (!ok) setTimeout(swSetup, 1500);
   } catch (e) { $('#offPill').textContent = '⚠ العمل بدون نت مش متاح هنا (لازم يتفتح من رابط https)'; }
 }
+$('#updBtn').onclick = async () => {
+  if (!navigator.onLine) { toast('لازم نت علشان التحديث'); return; }
+  $('#updInfo').textContent = 'جاري التحقق…';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) { await reg.update(); if (reg.waiting) reg.waiting.postMessage('skipWaiting'); }
+    // drop only the program's offline copy (not the data) and reload from the network
+    const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith(CACHE_PFX)).map(k => caches.delete(k)));
+    if (reg) await reg.unregister();
+    location.reload();
+  } catch (e) { $('#updInfo').textContent = 'مقدرتش أحدّث: ' + e.message; }
+};
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#installBtn').disabled = false; });
 $('#installBtn').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('#installBtn').disabled = true; };
