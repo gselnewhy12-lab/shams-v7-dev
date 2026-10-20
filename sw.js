@@ -1,6 +1,6 @@
 // Offline cache for «صرف سريع بالاسكانر»
 const PFX = 'shamsdev-';
-const CACHE = PFX + '20261020dev2';
+const CACHE = PFX + '20261020dev3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 // always download fresh copies (never from the browser's HTTP cache) when a new version installs
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(u => new Request(u, {cache: 'reload'})))).then(() => self.skipWaiting())); });

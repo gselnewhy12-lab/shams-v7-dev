@@ -10367,7 +10367,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 /******/ ])["default"];
 });</script>
 <script>
-const APP_VER = "20261020dev2";
+const APP_VER = "20261020dev3";
 const DB_NAME = "shams-dev-stockcard", CACHE_PFX = "shamsdev-", LS_PFX = "shamsdev-", FLAVOR = "dev";
 </script>
 <script>
@@ -10871,6 +10871,23 @@ $('#catInput').onchange = async e => {
     msg.innerHTML = okHtml; $('#catMsg').innerHTML = okHtml; if (!$('#pScan').classList.contains('hide')) toast('✓ الدليل جاهز — تقدر تعمل اسكان');
   } catch (x) { clearInterval(tick); msg.innerHTML = `<div class="alert bad"><b>مقدرتش أقرا الملف</b>${esc(x.message)}</div>`; }
 };
+// Reads a worksheet piece by piece and keeps only the rows that hold a value.
+// A sheet formatted down to row 1,048,576 can be 300+ MB of XML — on a phone that never finishes,
+// so empty rows are dropped as they stream in, and reading stops after a long run of empty rows.
+async function sheetRowsText(stream, maxEmptyRun = 20000) {
+  const rd = stream.getReader(), keep = [], reRow = /<row [^>]*?r="\d+"[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g;
+  let buf = '', emptyRun = 0, seen = false;
+  for (;;) {
+    const {value, done} = await rd.read(); if (done) break;
+    buf += value; const last = buf.lastIndexOf('</row>'); if (last < 0) continue;
+    const part = buf.slice(0, last + 6); buf = buf.slice(last + 6); let m; reRow.lastIndex = 0;
+    while ((m = reRow.exec(part))) {
+      if (/<v(?:\s[^>]*)?>[^<]|<is>/.test(m[0])) { keep.push(m[0]); emptyRun = 0; seen = true; } else emptyRun++;
+    }
+    if (seen && emptyRun > maxEmptyRun) { try { await rd.cancel(); } catch (x) {} break; }
+  }
+  return keep.join('');
+}
 async function unzip(buf) {
   const u = new Uint8Array(buf), dv = new DataView(buf); let eocd = -1;
   for (let i = u.length - 22; i >= Math.max(0, u.length - 70000); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
@@ -10883,7 +10900,9 @@ async function unzip(buf) {
       if (meth === 0) return new TextDecoder().decode(data);
       if (meth !== 8) throw new Error('ضغط غير مدعوم');
       if (!('DecompressionStream' in window)) throw new Error('المتصفح ده قديم ومش بيقدر يفك ملفات Excel — حدّث المتصفح.');
-      const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return await new Response(ds).text(); };
+      const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      if (!name.startsWith('xl/worksheets/')) return await new Response(ds).text();
+      return await sheetRowsText(ds.pipeThrough(new TextDecoderStream())); };
   }
   return out;
 }
@@ -10912,7 +10931,7 @@ async function readStockSheet(f, step = async () => {}) {
       while ((c = reC.exec(m[2]))) { if (want && !want.has(c[1])) continue; const body = c[3]; if (!body) continue; const tm = /t="(\w+)"/.exec(c[2]); const t = tm ? tm[1] : '';
         let v;
         if (t === 'inlineStr') v = xdec((body.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).map(x => x.replace(/<[^>]+>/g, '')).join(''));
-        else { const vm = /<v>([\s\S]*?)<\/v>/.exec(body); if (!vm) continue; v = vm[1];
+        else { const vm = /<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/.exec(body); if (!vm) continue; v = vm[1];
           if (t === 's') v = sst[+v]; else if (t === 'str' || t === 'e') v = xdec(v); else if (t === 'b') v = v === '1'; else v = v === '' ? null : Number(v); }
         o[c[1]] = v; }
       out.push([+m[1], o]); }
