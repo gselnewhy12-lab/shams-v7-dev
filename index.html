@@ -90,6 +90,23 @@ body.rcv #scanBtn{background:var(--ok)}
 .tk{display:inline-block;font-size:11px;padding:1px 7px;border-radius:6px;font-weight:700;white-space:nowrap}
 .tk.k-in{background:var(--okbg);color:var(--ok)}.tk.k-out{background:#FDEBDD;color:#9a4511}.tk.k-adj{background:#E8ECF4;color:#3a4660}.tk.k-ret{background:#F2E6FB;color:#5B2C83}.tk.k-tr{background:#E3EEF9;color:#1F5C99}
 #printArea{display:none}
+/* ---- stocktaking ---- */
+nav button{font-size:12px}
+.ivh{display:flex;gap:8px;align-items:center;justify-content:space-between}.ivh h3{margin:0;color:var(--navy)}
+.ist{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;font-weight:700;background:#E8ECF4;color:#3a4660}
+.ist.counting{background:#FDEBDD;color:#9a4511}.ist.counted{background:#E3EEF9;color:#1F5C99}.ist.review{background:#FFF4D6;color:#8A5A00}.ist.approved{background:var(--okbg);color:var(--ok)}.ist.cancelled{background:#eee;color:#777}
+.prog{height:12px;background:#E8ECF4;border-radius:99px;overflow:hidden;margin:8px 0 4px}.prog i{display:block;height:100%;background:var(--ok)}
+.ikpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.ikpi div{background:#F3F5F9;border-radius:10px;padding:6px 4px;text-align:center}
+.ikpi small{display:block;color:var(--mut);font-size:11px}.ikpi b{font-size:17px}.ikpi .g{color:var(--ok)}.ikpi .r{color:var(--bad)}.ikpi .o{color:#1F5C99}.ikpi .y{color:var(--warn)}
+@media (max-width:400px){.ikpi{grid-template-columns:repeat(3,1fr)}}
+.itabs{display:flex;gap:4px;overflow-x:auto;margin:0 0 10px;padding-bottom:2px}.itabs button{flex:0 0 auto;padding:9px 12px;font-size:14px;background:#E8ECF4;color:var(--navy)}.itabs button.on{background:var(--navy);color:#fff}
+.irow{padding:10px;border-bottom:1px solid var(--line);cursor:pointer}.irow:active{background:#F3F5F9}.irow b{color:var(--navy)}.irow small{display:block;color:var(--mut)}
+.res{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px;font-weight:700;white-space:nowrap}
+.res.match{background:var(--okbg);color:var(--ok)}.res.short{background:var(--badbg);color:var(--bad)}.res.over{background:#E3EEF9;color:#1F5C99}.res.none{background:#E8ECF4;color:#5B6475}.res.flag{background:#FFF4D6;color:#8A5A00}
+.qbig{font-size:26px!important;font-weight:700;text-align:center}
+.fchips{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}.fchips button{padding:6px 10px;font-size:13px;background:#E8ECF4;color:var(--navy);border-radius:99px}.fchips button.on{background:var(--navy);color:#fff}
+.alog{font-size:12px;color:var(--mut);border-bottom:1px dashed var(--line);padding:6px 0;line-height:1.6}
+.pinbox input{letter-spacing:6px;text-align:center;font-size:22px}
 @media print{
   @page{size:A4 landscape;margin:10mm 9mm 14mm;@bottom-center{content:"صفحة " counter(page) " من " counter(pages);font-size:9px;color:#555}}
   body{background:#fff!important}
@@ -107,6 +124,8 @@ body.rcv #scanBtn{background:var(--ok)}
   #printArea .tot{margin-top:6px;display:flex;gap:18px;font-weight:bold}
   #printArea .sig{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;break-inside:avoid}
   #printArea .sig div{border:1px solid #000;min-height:22mm;padding:4px}
+  #printArea .sig.s4{grid-template-columns:repeat(4,1fr)}
+  #printArea .sum4{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:6px;break-inside:avoid}#printArea .sum4 div{border:1px solid #000;padding:3px;text-align:center}
   #printArea .note{font-size:9px;color:#333;margin-top:4px}
 }
 #results div{padding:10px;border-bottom:1px solid var(--line);cursor:pointer}
@@ -244,6 +263,9 @@ body.rcv #scanBtn{background:var(--ok)}
   </div>
 </section>
 
+<!-- ============ STOCKTAKING ============ -->
+<section id="pInv" class="hide"><div id="invRoot"></div></section>
+
 <!-- ============ STOCK CARD ============ -->
 <section id="pCard" class="hide">
   <div class="card" id="cSearchCard">
@@ -261,6 +283,7 @@ body.rcv #scanBtn{background:var(--ok)}
 <nav>
   <button data-p="pScan" class="on"><b>📷</b>اسكان</button>
   <button data-p="pOps"><b>📋</b>العمليات <span class="badge" id="newCount">0</span></button>
+  <button data-p="pInv"><b>🧮</b>الجرد</button>
   <button data-p="pCard"><b>📒</b>كارت الصنف</button>
   <button data-p="pExp"><b>📤</b>تصدير وإعدادات</button>
 </nav>
@@ -10367,7 +10390,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 /******/ ])["default"];
 });</script>
 <script>
-const APP_VER = "20261020dev3";
+const APP_VER = "20261021dev";
 const DB_NAME = "shams-dev-stockcard", CACHE_PFX = "shamsdev-", LS_PFX = "shamsdev-", FLAVOR = "dev";
 </script>
 <script>
@@ -10396,8 +10419,13 @@ let actx; function beep(ok) {
 let db;
 function openDB() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open(DB_NAME, 1);
-    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('ops', {keyPath: 'id'}); d.createObjectStore('meta', {keyPath: 'k'}); };
+    const r = indexedDB.open(DB_NAME, 2);
+    r.onupgradeneeded = () => { const d = r.result, has = n => d.objectStoreNames.contains(n);
+      if (!has('ops')) d.createObjectStore('ops', {keyPath: 'id'}); if (!has('meta')) d.createObjectStore('meta', {keyPath: 'k'});
+      // stocktaking (v2): sessions, count lines, audit log — never touch ops/meta
+      if (!has('stk')) d.createObjectStore('stk', {keyPath: 'id'});
+      if (!has('cnt')) d.createObjectStore('cnt', {keyPath: 'id'}).createIndex('sid', 'sid');
+      if (!has('aud')) d.createObjectStore('aud', {keyPath: 'id'}).createIndex('sid', 'sid'); };
     r.onsuccess = () => { db = r.result; res(db); }; r.onerror = () => rej(r.error);
   });
 }
@@ -10478,7 +10506,7 @@ if (matchMedia('(display-mode: standalone)').matches || navigator.standalone) { 
 
 // ---------------- navigation ----------------
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => showPage(b.dataset.p));
-function showPage(p) { document.querySelectorAll('main>section').forEach(s => s.classList.toggle('hide', s.id !== p)); document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p)); if (p !== 'pScan') stopCam(); if (p === 'pOps') renderOps(); if (p === 'pExp') renderExp(); if (p === 'pCard') cardEnter(); scrollTo(0, 0); }
+function showPage(p) { document.querySelectorAll('main>section').forEach(s => s.classList.toggle('hide', s.id !== p)); document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p)); if (p !== 'pScan') stopCam(); if (p === 'pOps') renderOps(); if (p === 'pExp') renderExp(); if (p === 'pCard') cardEnter(); if (p === 'pInv') invEnter(); scrollTo(0, 0); }
 
 // ---------------- camera scanning ----------------
 let stream = null, scanning = false, detector = null, track = null, torchOn = false;
@@ -10504,7 +10532,7 @@ async function startCam() {
 function camFail(msg) { const e = $('#camErr'); e.textContent = msg; e.classList.remove('hide'); stopCam(); }
 function stopCam() { scanning = false; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; track = null; torchOn = false; $('#cam').style.display = 'none'; $('#scanCard').classList.remove('hide'); }
 $('#torchBtn').onclick = async () => { try { torchOn = !torchOn; await track.applyConstraints({advanced: [{torch: torchOn}]}); } catch (e) {} };
-$('#stopBtn').onclick = () => { const back = cardScan; cardScan = false; stopCam(); if (back) showPage('pCard'); };
+$('#stopBtn').onclick = () => { const back = cardScan, ib = invScan; cardScan = false; invScan = false; stopCam(); if (back) showPage('pCard'); if (ib) showPage('pInv'); };
 $('#scanBtn').onclick = startCam;
 
 function decodeCanvas(w, h, both) {
@@ -10574,6 +10602,7 @@ let lastScan = {code: null, t: 0};
 async function onDecoded(raw, src) {
   const code = normCode(raw);
   if (cardScan) { cardScan = false; stopCam(); beep(CAT.has(code)); openCard(code); return; }
+  if (invScan) { invScan = false; stopCam(); showPage('pInv'); invOnCode(code, 'اسكان'); return; }
   const now = Date.now();
   if (src !== 'بحث يدوي' && code === lastScan.code && now - lastScan.t < 4000 && cur && cur.code === code) { toast('نفس الكود اتقرا تاني — اتجاهل'); return; }
   lastScan = {code, t: now};
@@ -10622,6 +10651,7 @@ async function lookup(withSound) {
     $('#cardFromScan').onclick = () => { const c = cur.code; $('#formCard').classList.add('hide'); cur = null; openCard(c); };
     cur.avail = avail;
   }
+  try { await invIssueHint(code); } catch (e) {}
   if (isRcv()) fillPoList(code);
   // duplicate check
   const pend = await localPending(code, cur.editId, mode);
@@ -10858,11 +10888,11 @@ $('#catInput').onchange = async e => {
   paint(); const tick = setInterval(paint, 1000);
   const step = async t => { stepTxt = t; paint(); await new Promise(r => setTimeout(r, 0)); };
   try {
-    const {rows, workers, pos, moves, types, site, qsp} = await readStockSheet(f, step);
+    const {rows, workers, pos, moves, types, site, qsp, physCol, hdrRow} = await readStockSheet(f, step);
     clearInterval(tick);
     if (rows.length < 10) throw new Error('لقيت ' + rows.length + ' صنف بس — اتأكد إنه ملف المخزن.');
     const d = new Date(f.lastModified || Date.now()); const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    await setMeta('catalog', {rows, date: ds, src: f.name});
+    await setMeta('catalog', {rows, date: ds, src: f.name, physCol, hdrRow, at: new Date().toISOString()});
     if (workers.length) await setMeta('workers', workers);
     await setMeta('pos', pos); POS = pos;
     await setMeta('ledger', {moves: moves || [], types, site, qsp, ok: !!moves, date: ds, src: f.name}); LEDGER = null;
@@ -10946,7 +10976,7 @@ async function readStockSheet(f, step = async () => {}) {
   const num = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Math.round(Number(v) * 1000) / 1000;
   const rows = [];
   for (const [rn, m] of [...grid].sort((a, b) => a[0] - b[0])) { if (rn <= hr) continue; const c = m[cols.code]; if (c === null || c === undefined || c === '') continue;
-    rows.push([String(c), String(m[cols.name] ?? '').trim(), String(m[cols.unit] ?? ''), num(m[cols.bal]), cols.phys ? num(m[cols.phys]) : null, cols.pend ? (num(m[cols.pend]) || 0) : 0, cols.loc ? String(m[cols.loc] ?? '') : '']); }
+    rows.push([String(c), String(m[cols.name] ?? '').trim(), String(m[cols.unit] ?? ''), num(m[cols.bal]), cols.phys ? num(m[cols.phys]) : null, cols.pend ? (num(m[cols.pend]) || 0) : 0, cols.loc ? String(m[cols.loc] ?? '') : '', rn]); }
   if (rows.length && rows.every(r => r[1] === '' && r[3] === null)) throw new Error('الملف مفيهوش قيم محسوبة. افتحه في Excel واحفظه وبعدين جرّب تاني.');
   // workers (ورقة «العمال» — عمود «اسم العامل»)، اختياري
   let workers = [];
@@ -10984,7 +11014,7 @@ async function readStockSheet(f, step = async () => {}) {
       const po = m[c2.po], code = m[c2.code]; if (po === null || po === undefined || po === '' || !code) continue;
       pos.push({po: String(po), code: String(code), sup: String(m[c2.sup] ?? ''), qty: num(m[c2.qty]) || 0, rec: num(m[c2.rec]) || 0, rem: num(m[c2.rem]) ?? 0}); } } } catch (e) {}
   await step('بحفظ على الموبايل');
-  return {rows, workers: [...new Set(workers)], pos, moves, types, site, qsp};
+  return {rows, workers: [...new Set(workers)], pos, moves, types, site, qsp, physCol: cols.phys || '', hdrRow: hr};
 }
 
 // ---------------- stock movement card (read-only) ----------------
@@ -11133,6 +11163,618 @@ async function printCard() {
 }
 $('#coName').onchange = async () => { await setMeta('company', $('#coName').value.trim()); toast('اتحفظ اسم الشركة'); };
 
+// ---------------- stocktaking (الجرد) ----------------
+// =====================================================================
+// Stocktaking (الجرد) — read-only towards stock: never changes balances,
+// never touches the issue/receipt operations or the catalog.
+// Data: IndexedDB stores stk (sessions), cnt (count lines), aud (audit log).
+// =====================================================================
+let invScan = false;
+const INV = {sid: null, tab: 'count', filter: 'all', q: '', detail: null, role: ''};
+let DEV = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const r3 = v => Math.round(Number(v) * 1000) / 1000;
+const serOf = d => (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()) - Date.UTC(1899, 11, 30)) / 864e5;
+const isoSer = iso => serOf(new Date(iso));
+const hm = iso => { if (!iso) return '—'; const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+const zoneOf = loc => (String(loc || '').split('-')[0] || '').trim() || '—';
+const ST_TXT = {counting: 'جاري الجرد', counted: 'انتهى العد', review: 'تحت المراجعة', approved: 'معتمد', cancelled: 'ملغي'};
+const RES_TXT = {none: 'لم يتم الجرد', match: 'مطابق', short: 'عجز', over: 'زيادة'};
+const TYPES_INV = ['جرد شامل', 'جرد جزئي', 'جرد مفاجئ', 'جرد دوري'];
+
+const stkAll = () => tx('stk', 'readonly', s => s.getAll());
+const stkGet = id => tx('stk', 'readonly', s => s.get(id));
+const stkPut = o => { o.mt = new Date().toISOString(); return tx('stk', 'readwrite', s => s.put(o)); };
+const cntBySid = sid => tx('cnt', 'readonly', s => s.index('sid').getAll(sid));
+const cntPut = o => tx('cnt', 'readwrite', s => s.put(o));
+const audBySid = sid => tx('aud', 'readonly', s => s.index('sid').getAll(sid));
+async function audit(sid, action, info = {}) {
+  await tx('aud', 'readwrite', s => s.put(Object.assign({id: uid(), sid, t: new Date().toISOString(), dev: DEV.id, devName: DEV.name || '', role: INV.role || '', action}, info)));
+}
+async function devInit() {
+  if (DEV) return DEV;
+  DEV = await getMeta('device');
+  if (!DEV) { DEV = {id: Math.random().toString(36).slice(2, 6).toUpperCase(), name: ''}; await setMeta('device', DEV); }
+  return DEV;
+}
+
+// ---------- small form dialog ----------
+function formModal(title, msg, fields, okTxt = 'تمام') {
+  return new Promise(res => {
+    const m = document.createElement('div'); m.className = 'modal';
+    const fh = fields.map(f => {
+      if (f.type === 'select') return `<label>${esc(f.label)}</label><select data-f="${f.id}">${f.options.map(o => `<option${o === f.value ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      if (f.type === 'checks') return `<label>${esc(f.label)}</label><div class="fchips" data-f="${f.id}">${f.options.map(o => `<button type="button" data-v="${esc(o[0])}">${esc(o[1])}</button>`).join('')}</div>`;
+      if (f.type === 'area') return `<label>${esc(f.label)}</label><textarea data-f="${f.id}" rows="2" style="width:100%;font:inherit;padding:10px;border:1.5px solid var(--line);border-radius:10px">${esc(f.value || '')}</textarea>`;
+      return `<label>${esc(f.label)}</label><input data-f="${f.id}" type="${f.type || 'text'}" ${f.type === 'number' ? 'inputmode="decimal" step="any"' : ''} ${f.pin ? 'inputmode="numeric" autocomplete="off" class="pinbox"' : ''} value="${esc(f.value ?? '')}" placeholder="${esc(f.ph || '')}">`;
+    }).join('');
+    m.innerHTML = `<div class="box" style="max-height:92vh;overflow:auto"><h3>${esc(title)}</h3>${msg ? `<div class="msg">${esc(msg)}</div>` : ''}<div class="${fields.some(f => f.pin) ? 'pinbox' : ''}">${fh}</div><div class="alert bad hide" data-err></div><div class="btns" style="margin-top:12px"><button class="btn org" data-ok>${esc(okTxt)}</button><button class="btn ghost" data-no>إلغاء</button></div></div>`;
+    m.querySelectorAll('.fchips button').forEach(b => b.onclick = () => b.classList.toggle('on'));
+    const val = () => { const o = {}; for (const f of fields) { const e = m.querySelector(`[data-f="${f.id}"]`);
+      o[f.id] = f.type === 'checks' ? [...e.querySelectorAll('button.on')].map(b => b.dataset.v) : e.value.trim(); } return o; };
+    m.querySelector('[data-ok]').onclick = () => { const v = val(); const bad = fields.find(f => f.req && (Array.isArray(v[f.id]) ? !v[f.id].length : v[f.id] === ''));
+      if (bad) { const e = m.querySelector('[data-err]'); e.textContent = 'لازم: ' + bad.label; e.classList.remove('hide'); return; } m.remove(); res(v); };
+    m.querySelector('[data-no]').onclick = () => { m.remove(); res(null); };
+    document.body.appendChild(m); const first = m.querySelector('input,select,textarea'); if (first) setTimeout(() => first.focus(), 50);
+  });
+}
+
+// ---------- roles / PIN (light protection on the device — not real security) ----------
+const ROLES = {keeper: 'أمين المخزن', reviewer: 'المراجع', manager: 'مدير المخازن'};
+const PERM = {create: ['keeper', 'manager'], edit: ['keeper', 'manager'], finish: ['keeper', 'reviewer', 'manager'], review: ['reviewer', 'manager'],
+  approve: ['manager'], settle: ['manager'], cancel: ['keeper', 'manager'], pins: ['manager']};
+const PERM_TXT = {create: 'إنشاء جرد', edit: 'تعديل العد', finish: 'إنهاء العد', review: 'مراجعة الفروق', approve: 'اعتماد المحضر', settle: 'اعتماد التسوية', cancel: 'إلغاء الجرد', pins: 'تغيير الأرقام السرية'};
+async function hashPin(pin, salt) {
+  const data = new TextEncoder().encode(salt + ':' + pin);
+  if (crypto && crypto.subtle) { const h = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join(''); }
+  let h = 5381; for (const b of data) h = ((h << 5) + h + b) >>> 0; return 'x' + h.toString(16);
+}
+async function pinsCfg() { return (await getMeta('invPins')) || null; }
+// returns the role key that was used, '' when PINs are not set up, or null when refused
+async function needRole(action, sid) {
+  const cfg = await pinsCfg(); if (!cfg || !cfg.on) { INV.role = ''; return ''; }
+  const allowed = PERM[action];
+  const v = await formModal('🔐 ' + PERM_TXT[action], 'محتاج الرقم السري لـ: ' + allowed.map(r => ROLES[r]).join(' أو '), [{id: 'pin', label: 'الرقم السري', type: 'password', pin: true, req: true}], 'تأكيد');
+  if (!v) return null;
+  const hh = await hashPin(v.pin, cfg.salt);
+  const role = allowed.find(r => cfg[r] && cfg[r] === hh);
+  if (!role) { beep(false); toast('⛔ الرقم السري غلط أو مش مسموح للعملية دي'); if (sid) await audit(sid, 'pin-refused', {what: PERM_TXT[action]}); return null; }
+  INV.role = ROLES[role]; return role;
+}
+async function editPins() {
+  const cfg = await pinsCfg();
+  if (cfg && cfg.on) { const r = await needRole('pins'); if (r === null) return; }
+  const v = await formModal('🔐 الأرقام السرية للجرد', 'الأرقام دي بتتحفظ على الموبايل ده بس (مش بتتبعت لأي مكان). دي حماية خفيفة تمنع الضغط بالغلط — مش نظام أمان كامل. سيب الخانة فاضية علشان الرقم يفضل زي ما هو.', [
+    {id: 'keeper', label: 'أمين المخزن — إنشاء الجرد وتعديل العد', type: 'password', pin: true}, {id: 'reviewer', label: 'المراجع — مراجعة الفروق وإعادة العد', type: 'password', pin: true},
+    {id: 'manager', label: 'مدير المخازن — الاعتماد والتسوية', type: 'password', pin: true}], 'حفظ');
+  if (!v) return;
+  const n = Object.assign({salt: (cfg && cfg.salt) || uid(), on: true}, cfg || {});
+  for (const k of Object.keys(ROLES)) if (v[k]) { if (v[k].length < 4) { toast('الرقم السري لازم 4 أرقام على الأقل'); return; } n[k] = await hashPin(v[k], n.salt); }
+  if (!n.manager) { toast('لازم رقم سري لمدير المخازن على الأقل'); return; }
+  n.on = true; await setMeta('invPins', n); toast('✓ اتحفظت الأرقام السرية'); invEnter();
+}
+
+// ---------- scope & snapshot ----------
+function inScope(S, code) {
+  if (S.snap.rows[code]) return true;
+  return !!(S.items[code] && S.items[code].added);
+}
+function makeSnapshot(scope) {
+  const rows = {};
+  for (const r of CAT.values()) { if (scope.all || scope.zones.includes(zoneOf(r[6]))) rows[r[0]] = [r[1], r[2], r[3], r[6], r[5] || 0]; }
+  return {date: CAT_DATE, src: CAT_SRC, at: new Date().toISOString(), rows};
+}
+
+// ---------- expected book quantity at the moment of the count ----------
+// Physical stock at time t = file movements up to t + «صرف سريع» rows not «نعم» up to t + phone operations not exported yet up to t.
+// A movement with a date but no time on the count day is counted and flagged for review.
+function expectedAt(code, ser, L, ops, S) {
+  const flags = [], during = [], after = [];
+  const day = Math.floor(ser), cut = isoSer(S.createdAt);
+  const moves = L.by.get(code) || [];
+  let val = 0, used = false;
+  if (L.ok) {
+    used = true;
+    for (const m of moves) {
+      const sg = signOf(m[3], L.types); if (sg === null) { flags.push('نوع حركة مش معروف: ' + m[3]); continue; }
+      const d = m[1], q = m[2] * sg; const noTime = d !== null && Math.abs(d - Math.floor(d)) < 1e-7;
+      if (d === null || d <= ser || (noTime && Math.floor(d) === day)) { val += q;
+        if (noTime && Math.floor(d) === day) flags.push(`حركة يوم العد من غير وقت (${m[3]} ${m[4]}) — اتحسبت قبل العد، راجعها`);
+        if (d !== null && d >= cut - 1e-9) during.push({d, type: m[3], doc: m[4], q}); }
+      else after.push({d, type: m[3], doc: m[4], q});
+    }
+  } else {
+    const r = CAT.get(code) || null; const sr = S.snap.rows[code];
+    val = r ? (r[3] || 0) : sr ? (sr[2] || 0) : 0;
+    if (r || sr) flags.push('مفيش حركات «المدخلات» على الموبايل — الدفتري من «الرصيد الدفتري» في الملف');
+  }
+  if (used) { const r = CAT.get(code); if (r && r[3] !== null && Math.abs((r[3] || 0) - moves.reduce((a, m) => a + m[2] * (signOf(m[3], L.types) || 0), 0)) > 0.0011) flags.push('رصيد الحركات مختلف عن «الرصيد الدفتري» في الملف'); }
+  // «صرف سريع بالاسكانر» rows not «نعم» — already out of the store physically
+  for (const q of (L.qsp || []).filter(q => q[0] === code)) {
+    const d = q[1]; if (d === null || d <= ser || Math.floor(d) === day) { val -= q[2]; if (d !== null && Math.floor(d) === day) flags.push(`صرف سريع يوم العد من غير وقت (${q[4] || q[3]}) — اتحسب قبل العد`); if (d === null || d >= cut - 1e-9) during.push({d, type: 'صرف سريع', doc: q[4], q: -q[2]}); }
+    else after.push({d, type: 'صرف سريع', doc: q[4], q: -q[2]});
+  }
+  if (!used && L.ok === false) {} // nothing more
+  // phone operations not exported yet
+  for (const o of ops) { if (o.code !== code) continue;
+    if (opKind(o) === 'receipt' && moves.some(m => m[4] === String(o.dn) && m[3] === (o.rtype || 'إذن استلام'))) continue;
+    const s = isoSer(o.ts), q = opKind(o) === 'receipt' ? Number(o.qty) : -Number(o.qty);
+    if (s <= ser) { val += q; if (s >= cut) during.push({d: s, type: opKind(o) === 'receipt' ? 'إضافة على الموبايل' : 'صرف على الموبايل', doc: o.dn || o.req || '', q}); }
+    else after.push({d: s, type: opKind(o) === 'receipt' ? 'إضافة على الموبايل' : 'صرف على الموبايل', doc: o.dn || o.req || '', q}); }
+  return {val: r3(val), flags: [...new Set(flags)], during, after};
+}
+
+// ---------- item states ----------
+async function invState(S) {
+  const L = await ledger(), lines = await cntBySid(S.id), ops = (await allOps()).filter(o => o.status === 'new');
+  const codes = new Set(Object.keys(S.snap.rows)); for (const k of Object.keys(S.items)) if (S.items[k].added) codes.add(k);
+  for (const l of lines) if (!l.void) codes.add(l.code);
+  const nowSer = serOf(new Date()), out = [];
+  for (const code of codes) {
+    const it = S.items[code] || {}, round = it.round || 1;
+    const all = lines.filter(l => l.code === code), ls = all.filter(l => !l.void && (l.round || 1) === round);
+    const devs = [...new Set(ls.map(l => l.dev))];
+    const res = it.res && it.res.round === round ? it.res.choice : '';
+    const conflict = devs.length > 1 && !res;
+    let chosen = ls; if (res.startsWith('dev:')) chosen = ls.filter(l => l.dev === res.slice(4));
+    const counted = chosen.length ? r3(chosen.reduce((a, l) => a + Number(l.qty), 0)) : null;
+    const tc = chosen.length ? Math.max(...chosen.map(l => l.ser)) : nowSer;
+    const ex = expectedAt(code, tc, L, ops, S);
+    const sr = S.snap.rows[code], r = CAT.get(code);
+    const unknown = !sr && !r;
+    const diff = counted === null ? null : r3(counted - ex.val);
+    const status = counted === null ? 'none' : Math.abs(diff) < 0.0005 ? 'match' : diff < 0 ? 'short' : 'over';
+    out.push({code, name: sr ? sr[0] : r ? r[1] : (all.find(l => l.uname) || {}).uname || 'صنف غير معروف', unit: sr ? sr[1] : r ? r[2] : (all.find(l => l.uunit) || {}).uunit || '',
+      loc: sr ? sr[3] : r ? r[6] : '', book0: sr ? sr[2] : null, expected: ex.val, counted, diff, status, flags: ex.flags, during: ex.during, after: ex.after,
+      unknown, round, recount: !!it.recount && !ls.length, recounted: round > 1, conflict, devs, lines: all, reason: it.reason || '', note: it.note || '', added: !!it.added, countedAt: chosen.length ? Math.max(...chosen.map(l => +new Date(l.t))) : null});
+  }
+  out.sort((a, b) => String(a.loc).localeCompare(String(b.loc)) || a.code.localeCompare(b.code));
+  return out;
+}
+function kpis(st) {
+  const k = {total: st.length, counted: 0, remaining: 0, match: 0, short: 0, over: 0, recount: 0, conflict: 0, unknown: 0, flagged: 0};
+  for (const x of st) { if (x.status === 'none') k.remaining++; else k.counted++; if (x.status === 'match') k.match++; if (x.status === 'short') k.short++; if (x.status === 'over') k.over++;
+    if (x.recount) k.recount++; if (x.conflict) k.conflict++; if (x.unknown) k.unknown++; if (x.flags.length && x.status !== 'none') k.flagged++; }
+  k.pct = k.total ? Math.round(k.counted * 1000 / k.total) / 10 : 0; return k;
+}
+const frozenOrLive = async S => S.status === 'approved' && S.approved ? S.approved.frozen : await invState(S);
+
+// ---------- dashboard ----------
+async function invEnter() {
+  const root = $('#invRoot'); if (!db) { root.innerHTML = '<div class="alert bad">التخزين على الموبايل مش شغال هنا.</div>'; return; }
+  await devInit();
+  if (INV.sid) { const S = await stkGet(INV.sid); if (S) return renderSession(S); INV.sid = null; }
+  const list = (await stkAll()).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); const cfg = await pinsCfg();
+  const prog = {}; for (const S of list) { const ls = await cntBySid(S.id); const c = new Set(ls.filter(l => !l.void).map(l => l.code)); prog[S.id] = [c.size, Object.keys(S.snap.rows).length]; }
+  const group = st => list.filter(S => S.status === st);
+  const card = S => `<div class="irow" data-s="${esc(S.id)}"><b>${esc(S.no)}</b> <span class="ist ${S.status}">${ST_TXT[S.status]}</span><small>${esc(S.type)} · ${esc(S.store)} · ${hm(S.createdAt)} · ${S.local === false ? 'من موبايل تاني' : 'على الموبايل ده'}</small>
+    <div class="prog"><i style="width:${prog[S.id][1] ? Math.min(100, prog[S.id][0] * 100 / prog[S.id][1]) : 0}%"></i></div><small>اتعدّ ${prog[S.id][0]} من ${prog[S.id][1]} صنف</small></div>`;
+  const sec = (t, st) => { const g = group(st); return g.length ? `<div class="card"><b style="color:var(--navy)">${t} (${g.length})</b>${g.map(card).join('')}</div>` : ''; };
+  root.innerHTML = `<div class="card"><div class="ivh"><h3>🧮 الجرد المخزني</h3><button class="btn ghost" id="ivPins" style="padding:8px 10px">🔐</button></div>
+    <p class="muted">الجرد هنا بيقارن العدّ الفعلي بالرصيد الدفتري — <b>ومش بيغيّر أي رصيد</b>. التسوية مستند منفصل بعد الاعتماد.</p>
+    ${CAT.size ? '' : '<div class="alert warn">لازم تستورد ملف المخزن الأول من «تصدير وإعدادات».</div>'}
+    ${cfg && cfg.on ? '' : '<div class="alert warn" style="font-size:13px">الأرقام السرية للجرد مش متفعّلة — أي حد ماسك الموبايل يقدر يعتمد. فعّلها من 🔐.</div>'}
+    <button class="btn big org" id="ivNew" ${CAT.size ? '' : 'disabled'}>➕ جرد جديد</button>
+    <div class="row" style="margin-top:8px"><button class="btn ghost" id="ivImp">📥 استيراد ملف جرد</button><button class="btn ghost" id="ivCmp">📊 مقارنة جولتين</button></div>
+    <input type="file" id="ivFile" accept=".xlsx" class="hide"></div>
+    ${sec('جاري الجرد', 'counting')}${sec('انتهى العد', 'counted')}${sec('تحت المراجعة', 'review')}${sec('معتمد', 'approved')}${sec('ملغي', 'cancelled')}
+    ${list.length ? '' : '<div class="card muted">مفيش جرد لسه.</div>'}`;
+  root.querySelectorAll('[data-s]').forEach(e => e.onclick = () => { INV.sid = e.dataset.s; INV.tab = 'count'; INV.detail = null; invEnter(); });
+  $('#ivNew').onclick = newSession; $('#ivPins').onclick = editPins; $('#ivImp').onclick = () => $('#ivFile').click(); $('#ivFile').onchange = importInvFile;
+  $('#ivCmp').onclick = () => compareRounds(list);
+}
+
+async function newSession() {
+  const L = await ledger(); const zones = [...new Set([...CAT.values()].map(r => zoneOf(r[6])))].sort();
+  const v = await formModal('➕ جرد جديد', '', [
+    {id: 'type', label: 'نوع الجرد', type: 'select', options: TYPES_INV, value: TYPES_INV[0]},
+    {id: 'scope', label: 'الأصناف', type: 'select', options: ['كل الأصناف', 'مناطق محددة'], value: 'كل الأصناف'},
+    {id: 'zones', label: 'المناطق (لو «مناطق محددة»)', type: 'checks', options: zones.map(z => [z, z])},
+    {id: 'store', label: 'اسم المخزن', value: L.site || 'مخزن الموقع', req: true},
+    {id: 'owner', label: 'المسؤول عن الجرد', value: DEV.name || '', req: true},
+    {id: 'committee', label: 'لجنة الجرد (أسماء مفصولة بـ ،)', value: ''},
+    {id: 'notes', label: 'ملاحظات عامة', type: 'area'}], 'إنشاء الجرد');
+  if (!v) return;
+  const scope = v.scope === 'كل الأصناف' ? {all: true, zones: []} : {all: false, zones: v.zones};
+  if (!scope.all && !scope.zones.length) { toast('اختار منطقة واحدة على الأقل'); return; }
+  const role = await needRole('create'); if (role === null) return;
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const S = {id: uid(), no: `INV-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${DEV.id}`, type: v.type, store: v.store, owner: v.owner,
+    committee: v.committee.split(/[،,]/).map(x => x.trim()).filter(Boolean), notes: v.notes, createdAt: d.toISOString(), status: 'counting', scope, snap: makeSnapshot(scope),
+    items: {}, devices: {}, origin: DEV.id, local: true};
+  if (!Object.keys(S.snap.rows).length) { toast('مفيش أصناف في المناطق دي'); return; }
+  if (!DEV.name) { DEV.name = v.owner; await setMeta('device', DEV); }
+  await stkPut(S); await audit(S.id, 'create', {info: `${S.type} — ${Object.keys(S.snap.rows).length} صنف — مرجع الأرصدة: ملف ${S.snap.src} (${S.snap.date})`});
+  INV.sid = S.id; INV.tab = 'count'; toast('✓ اتعمل الجرد ' + S.no); invEnter();
+}
+
+// ---------- session screen ----------
+async function renderSession(S) {
+  const root = $('#invRoot'); const st = await frozenOrLive(S); const k = kpis(st); const lines = await cntBySid(S.id);
+  const mine = lines.filter(l => l.dev === DEV.id), lastExp = (S.exports || {})[DEV.id] || '';
+  const unsent = mine.filter(l => (l.mt || l.t) > lastExp).length;
+  const canCount = S.status === 'counting' || (S.status === 'review' && st.some(x => x.recount));
+  root.innerHTML = `<div class="card"><div class="ivh"><button class="btn ghost" id="ivBack" style="padding:8px 10px">→ كل الجرد</button><span class="ist ${S.status}">${ST_TXT[S.status]}</span></div>
+    <h3 style="margin:8px 0 2px;color:var(--navy)" class="code">${esc(S.no)}</h3>
+    <div class="muted">${esc(S.type)} · ${esc(S.store)} · فتح: ${hm(S.createdAt)} · المسؤول: ${esc(S.owner)}${S.committee.length ? ' · اللجنة: ' + esc(S.committee.join('، ')) : ''}<br>مرجع الأرصدة: ملف «${esc(S.snap.src)}» بتاريخ ${esc(S.snap.date)}${S.scope.all ? '' : ' · المناطق: ' + esc(S.scope.zones.join('، '))}</div>
+    <div class="prog"><i style="width:${k.pct}%"></i></div><div class="muted">اكتمال الجرد ${k.pct}% — اتعدّ ${k.counted} من ${k.total}</div>
+    <div class="ikpi"><div><small>إجمالي</small><b>${k.total}</b></div><div><small>اتعدّ</small><b>${k.counted}</b></div><div><small>متبقي</small><b>${k.remaining}</b></div><div><small>مطابق</small><b class="g">${k.match}</b></div>
+    <div><small>عجز</small><b class="r">${k.short}</b></div><div><small>زيادة</small><b class="o">${k.over}</b></div><div><small>إعادة عد</small><b class="y">${k.recount}</b></div><div><small>تعارض</small><b class="y">${k.conflict}</b></div></div>
+    <div class="muted" style="margin-top:6px">📱 الموبايل ده (${esc(DEV.id)}${DEV.name ? ' — ' + esc(DEV.name) : ''}): ${mine.length} عدّة${unsent ? ` · <b style="color:var(--warn)">${unsent} لسه ما اتصدّرتش</b>` : mine.length ? ' · كله اتصدّر ✓' : ''}</div></div>
+    <div class="itabs">${[['count', '🔢 عدّ'], ['items', '📋 الأصناف'], ['sync', '🔄 مزامنة'], ['review', '✅ مراجعة واعتماد'], ['reports', '🖨️ تقارير'], ['log', '🕘 السجل']].map(([t, n]) => `<button data-t="${t}" class="${INV.tab === t ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <div id="ivBody"></div>`;
+  $('#ivBack').onclick = () => { INV.sid = null; INV.detail = null; invEnter(); };
+  root.querySelectorAll('.itabs button').forEach(b => b.onclick = () => { INV.tab = b.dataset.t; INV.detail = null; renderSession(S); });
+  const B = $('#ivBody');
+  if (INV.tab === 'count') return tabCount(S, st, canCount, B, lines);
+  if (INV.tab === 'items') return tabItems(S, st, B);
+  if (INV.tab === 'sync') return tabSync(S, B, lines);
+  if (INV.tab === 'review') return tabReview(S, st, k, B, lines);
+  if (INV.tab === 'reports') return tabReports(S, B);
+  if (INV.tab === 'log') return tabLog(S, B);
+}
+const refresh = async () => { const S = await stkGet(INV.sid); if (S) renderSession(S); };
+
+// ---------- counting ----------
+function tabCount(S, st, canCount, B, lines) {
+  if (!canCount) { B.innerHTML = `<div class="card muted">العدّ مقفول — حالة الجرد: <b>${ST_TXT[S.status]}</b>.${S.status === 'counted' ? ' ارجع للعد من «مراجعة واعتماد» لو محتاج.' : ''}</div>`; return; }
+  const recentMine = lines.filter(l => l.dev === DEV.id).sort((a, b) => b.t.localeCompare(a.t)).slice(0, 8);
+  const byCode = new Map(st.map(x => [x.code, x]));
+  B.innerHTML = `${S.status === 'review' ? '<div class="alert warn">الجرد تحت المراجعة — العد مسموح بس للأصناف المطلوب إعادة عدها.</div>' : ''}
+    <div class="card"><button class="btn big org" id="icScan">📷 اسكان باركود الصنف</button>
+    <label for="icQ">أو ابحث بالكود أو بجزء من الاسم</label><input id="icQ" autocomplete="off" placeholder="مثال: أسمنت 42.5 — أو — 00007"><div id="icRes"></div>
+    <button class="btn ghost" id="icUnk" style="width:100%;margin-top:8px">❓ صنف موجود ومش في الدليل</button></div>
+    <div id="icForm"></div>
+    <div class="card"><b style="color:var(--navy)">آخر العدّات على الموبايل ده</b>${recentMine.length ? recentMine.map(l => { const x = byCode.get(l.code) || {};
+      return `<div class="irow" data-c="${esc(l.code)}"><b>${esc(x.name || l.uname || l.code)}</b> ${l.void ? '<span class="res none">ملغية</span>' : `<span class="res ${x.status || 'none'}">${RES_TXT[x.status || 'none']}${x.diff ? ' ' + fmt(x.diff) : ''}</span>`}<small class="code">${esc(l.code)} · ${fmt(l.qty)} ${esc(x.unit || '')} · ${hm(l.t)}${(l.round || 1) > 1 ? ' · إعادة عد' : ''}</small></div>`; }).join('') : '<p class="muted">لسه مفيش.</p>'}</div>`;
+  $('#icScan').onclick = () => { invScan = true; showPage('pScan'); startCam(); };
+  $('#icQ').oninput = () => { const q = $('#icQ').value.trim(), box = $('#icRes'); if (q.length < 2) { box.innerHTML = ''; return; }
+    const ws = q.split(/\s+/), out = []; for (const r of CAT.values()) { const h = r[0] + ' ' + r[1]; if (ws.every(w => h.includes(w))) { out.push(r); if (out.length >= 30) break; } }
+    box.innerHTML = out.length ? out.map(r => `<div class="irow" data-c="${esc(r[0])}"><b>${esc(r[1])}</b><small class="code">${esc(r[0])} · ${esc(r[6] || '—')}</small></div>`).join('') : '<p class="muted">مفيش صنف بالكلام ده في الدليل — لو موجود فعلًا استخدم «صنف موجود ومش في الدليل».</p>';
+    box.querySelectorAll('[data-c]').forEach(d => d.onclick = () => { $('#icQ').value = ''; box.innerHTML = ''; invOnCode(d.dataset.c, 'بحث يدوي'); }); };
+  $('#icUnk').onclick = async () => { const v = await formModal('❓ صنف مش في الدليل', 'هيتسجل «صنف غير معروف» للمراجعة. مش هيتعمل صنف رسمي.', [{id: 'code', label: 'الكود اللي على الصنف (لو فيه)', ph: 'اختياري'}, {id: 'name', label: 'وصف الصنف', req: true}, {id: 'unit', label: 'الوحدة', value: 'nr'}], 'كمّل');
+    if (!v) return; const code = v.code || ('UNK-' + uid().slice(-5).toUpperCase()); invOnCode(code, 'يدوي', {uname: v.name, uunit: v.unit}); };
+  B.querySelectorAll('.card:last-child [data-c]').forEach(d => d.onclick = () => { INV.tab = 'items'; INV.detail = d.dataset.c; refresh(); });
+}
+let invLast = {code: null, t: 0};
+async function invOnCode(code, src, extra = {}) {
+  const S = INV.sid && await stkGet(INV.sid); if (!S) { toast('افتح جرد الأول'); return; }
+  if (!(S.status === 'counting' || S.status === 'review')) { toast('العدّ مقفول في الجرد ده'); return; }
+  const now = Date.now(); if (src === 'اسكان' && code === invLast.code && now - invLast.t < 3000) { toast('نفس الكود اتقرا تاني — اتجاهل'); return; } invLast = {code, t: now};
+  INV.tab = 'count'; await renderSession(S);
+  const r = CAT.get(code);
+  if (!r && !extra.uname && !S.snap.rows[code]) {
+    beep(false); const v = await formModal('⛔ الكود مش في الدليل', code + '\nتسجّله «صنف غير معروف» للمراجعة؟ (مش هيتعمل صنف رسمي)', [{id: 'name', label: 'وصف الصنف', req: true}, {id: 'unit', label: 'الوحدة', value: 'nr'}], 'سجّله للمراجعة');
+    if (!v) return; extra = {uname: v.name, uunit: v.unit}; }
+  else beep(true);
+  if (S.status === 'counting' && !inScope(S, code) && (r || S.snap.rows[code])) {
+    const v = await modal('الصنف مش ضمن الجرد ده', `${r ? r[1] : code}\nالجرد ده ${S.scope.all ? '' : 'للمناطق ' + S.scope.zones.join('، ') + ' بس'}. تضيفه للجرد؟`, [{t: 'أيوه أضفه', v: 1, cls: 'org'}, {t: 'لا', v: 0, cls: 'ghost'}]);
+    if (!v) return; S.items[code] = Object.assign(S.items[code] || {}, {added: true}); await stkPut(S); await audit(S.id, 'add-item', {code}); }
+  const it = S.items[code] || {}, round = it.round || 1;
+  if (S.status === 'review' && !(it.recount)) { toast('الجرد تحت المراجعة — الصنف ده مش مطلوب إعادة عده'); return; }
+  const prev = (await cntBySid(S.id)).filter(l => l.code === code && !l.void && (l.round || 1) === round);
+  let mode = 'new';
+  if (prev.length) {
+    const txt = prev.map(l => `• ${fmt(l.qty)} — ${hm(l.t)} — موبايل ${l.dev}${l.by ? ' (' + l.by + ')' : ''}${l.note ? ' — ' + l.note : ''}`).join('\n');
+    const v = await modal('⚠ الصنف ده اتعدّ قبل كده', `${r ? r[1] : (extra.uname || code)}\n${txt}\n\nالعدّة الجديدة مش هتتجمع لوحدها.`, [
+      {t: '✏️ افتح العدّة القديمة', v: 'edit', cls: 'ghost'}, {t: '➕ عدّة منفصلة (مكان تاني) — تتجمع', v: 'sep', cls: 'org'}, {t: 'إلغاء', v: null, cls: 'ghost'}]);
+    if (!v) return; if (v === 'edit') return editLine(S, prev[prev.length - 1].id); mode = 'sep'; }
+  showCountForm(S, code, src, extra, mode, round);
+}
+function showCountForm(S, code, src, extra, mode, round) {
+  const r = CAT.get(code), sr = S.snap.rows[code];
+  const name = sr ? sr[0] : r ? r[1] : extra.uname, unit = sr ? sr[1] : r ? r[2] : extra.uunit || '', loc = sr ? sr[3] : r ? r[6] : '';
+  const F = $('#icForm');
+  F.innerHTML = `<div class="card"><div class="alert ${r || sr ? 'ok' : 'warn'}" style="margin:0 0 8px"><b>${r || sr ? '✓ ' : '❓ صنف غير معروف — '}${esc(name)}</b><span class="code">${esc(code)}</span></div>
+    <div class="kv"><div><small>الوحدة</small><span>${esc(unit || '—')}</span></div><div><small>الموقع</small><span>${esc(loc || '—')}</span></div><div><small>المخزن</small><span style="font-size:13px">${esc(S.store)}</span></div></div>
+    ${mode === 'sep' ? '<div class="alert warn">عدّة منفصلة — هتتجمع مع العدّة القديمة.</div>' : ''}${round > 1 ? '<div class="alert warn">إعادة عد — العدّ القديم مش هيتحسب.</div>' : ''}
+    <label for="icQty">الكمية الموجودة فعليًا (${esc(unit)}) — الصفر يتكتب 0</label><input id="icQty" class="qbig" type="number" inputmode="decimal" min="0" step="any">
+    <label for="icNote">ملاحظة (اختياري — مثلًا المكان)</label><input id="icNote" autocomplete="off">
+    <div id="icErr" class="alert bad hide"></div>
+    <div class="row" style="margin-top:10px"><button class="btn org" id="icSave">💾 حفظ الجرد</button><button class="btn ghost" id="icCancel" style="flex:0 0 30%">إلغاء</button></div>
+    <p class="muted">الحفظ بيسجل الكمية في جلسة الجرد بس — رصيد المخزن مش بيتغير.</p></div>`;
+  F.scrollIntoView({block: 'start'}); setTimeout(() => $('#icQty').focus(), 60);
+  $('#icCancel').onclick = () => { F.innerHTML = ''; };
+  let busy = false;
+  $('#icSave').onclick = async () => {
+    if (busy) return; const raw = String($('#icQty').value).replace(',', '.').trim();
+    const err = m => { $('#icErr').textContent = m; $('#icErr').classList.remove('hide'); beep(false); };
+    if (raw === '') return err('اكتب الكمية. لو مفيش ولا حاجة اكتب 0 — الخانة الفاضية معناها «ما اتعدّش».');
+    const qty = Number(raw); if (!(qty >= 0) || !isFinite(qty)) return err('الكمية لازم رقم صفر أو أكبر.');
+    if (!DEV.name) { const v = await formModal('اسم القائم بالعد', 'بيتسجل مع كل عدّة.', [{id: 'n', label: 'الاسم', req: true}]); if (!v) return; DEV.name = v.n; await setMeta('device', DEV); }
+    busy = true;
+    const S2 = await stkGet(S.id); if (!(S2.status === 'counting' || S2.status === 'review')) { busy = false; return err('العدّ اتقفل في الجرد ده.'); }
+    const t = new Date().toISOString();
+    const line = {id: DEV.id + '-' + uid(), sid: S.id, code, qty: r3(qty), t, mt: t, ser: isoSer(t), dev: DEV.id, by: DEV.name, src, round, void: false, note: $('#icNote').value.trim(), uname: extra.uname || '', uunit: extra.uunit || '', sep: mode === 'sep'};
+    await cntPut(line); await audit(S.id, 'count', {code, qty: line.qty, info: (mode === 'sep' ? 'عدّة منفصلة' : '') + (round > 1 ? ' إعادة عد' : '')});
+    beep(true); toast(`✓ اتحفظ: ${fmt(qty)} ${unit}`); F.innerHTML = ''; await refresh();
+  };
+}
+async function editLine(S, id) {
+  const l = (await cntBySid(S.id)).find(x => x.id === id); if (!l) return;
+  if (S.status === 'approved' || S.status === 'cancelled') { toast('الجرد مقفول — مفيش تعديل'); return; }
+  const v = await formModal('✏️ تعديل عدّة', `${l.code}\nالكمية الحالية: ${fmt(l.qty)} — ${hm(l.t)} — موبايل ${l.dev}`, [{id: 'qty', label: 'الكمية الصحيحة (فاضية = إلغاء العدّة)', type: 'number', value: l.qty}, {id: 'reason', label: 'سبب التعديل', req: true}], 'حفظ التعديل');
+  if (!v) return; const role = await needRole('edit', S.id); if (role === null) return;
+  const old = l.qty, now = new Date().toISOString();
+  l.edits = (l.edits || []).concat([{t: now, old, new: v.qty === '' ? null : r3(Number(v.qty)), reason: v.reason, by: DEV.name, role: INV.role}]);
+  if (v.qty === '') { l.void = true; } else { const q = Number(v.qty); if (!(q >= 0)) { toast('الكمية غلط'); return; } l.qty = r3(q); l.void = false; }
+  l.mt = now; await cntPut(l); await audit(S.id, v.qty === '' ? 'void' : 'edit', {code: l.code, old, new: v.qty === '' ? null : l.qty, reason: v.reason, line: l.id});
+  toast('✓ اتعدّل والتغيير اتسجل في السجل'); refresh();
+}
+
+// ---------- items list / item detail ----------
+function tabItems(S, st, B) {
+  const F = [['all', 'الكل'], ['none', 'لم يُجرد'], ['match', 'مطابق'], ['short', 'عجز'], ['over', 'زيادة'], ['recount', 'إعادة عد'], ['conflict', 'تعارض'], ['unknown', 'غير معروف'], ['flag', 'محتاج مراجعة']];
+  const pass = x => { const f = INV.filter; if (f === 'all') return true; if (['none', 'match', 'short', 'over'].includes(f)) return x.status === f; if (f === 'recount') return x.recount || x.recounted; if (f === 'conflict') return x.conflict; if (f === 'unknown') return x.unknown; if (f === 'flag') return x.flags.length && x.status !== 'none'; return true; };
+  const q = INV.q; const rows = st.filter(pass).filter(x => !q || (x.code + ' ' + x.name).includes(q));
+  B.innerHTML = `${INV.detail ? '<div id="ivDet"></div>' : ''}<div class="card"><div class="fchips">${F.map(([k, n]) => `<button data-f="${k}" class="${INV.filter === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+    <input id="ivQ" placeholder="ابحث في الأصناف" value="${esc(q)}" autocomplete="off"><div class="muted" style="margin:6px 0">${rows.length} صنف</div>
+    ${rows.slice(0, 300).map(x => `<div class="irow" data-c="${esc(x.code)}"><b>${esc(x.name)}</b> <span class="res ${x.status}">${RES_TXT[x.status]}${x.diff ? ' ' + (x.diff > 0 ? '+' : '') + fmt(x.diff) : ''}</span>${x.conflict ? ' <span class="res flag">تعارض</span>' : ''}${x.recount ? ' <span class="res flag">مطلوب إعادة عد</span>' : ''}${x.unknown ? ' <span class="res flag">غير معروف</span>' : ''}
+      <small class="code">${esc(x.code)} · ${esc(x.loc || '—')}</small><small>الدفتري وقت العد: ${fmt(x.expected)} · الفعلي: ${x.counted === null ? '—' : fmt(x.counted)} ${esc(x.unit)}${x.flags.length && x.status !== 'none' ? ' · ⚠ ' + x.flags.length : ''}</small></div>`).join('')}
+    ${rows.length > 300 ? '<p class="muted">أول 300 — استخدم البحث.</p>' : ''}</div>`;
+  B.querySelectorAll('.fchips button').forEach(b => b.onclick = () => { INV.filter = b.dataset.f; INV.detail = null; tabItems(S, st, B); });
+  $('#ivQ').oninput = () => { INV.q = $('#ivQ').value.trim(); const pos = $('#ivQ').selectionStart; tabItems(S, st, B); $('#ivQ').focus(); try { $('#ivQ').setSelectionRange(pos, pos); } catch (e) {} };
+  B.querySelectorAll('.irow[data-c]').forEach(e => e.onclick = () => { INV.detail = e.dataset.c; tabItems(S, st, B); scrollTo(0, 0); });
+  if (INV.detail) itemDetail(S, st.find(x => x.code === INV.detail), $('#ivDet'));
+}
+function itemDetail(S, x, box) {
+  if (!x) { box.innerHTML = ''; return; }
+  const locked = S.status === 'approved' || S.status === 'cancelled';
+  const lines = x.lines.slice().sort((a, b) => a.t.localeCompare(b.t));
+  box.innerHTML = `<div class="card"><div class="ivh"><b style="color:var(--navy)">${esc(x.name)}</b><button class="btn ghost" id="dClose" style="padding:6px 10px">✕</button></div><div class="code muted">${esc(x.code)} · ${esc(x.loc || '—')}</div>
+    <div class="kv"><div><small>الدفتري وقت فتح الجرد</small><span>${fmt(x.book0)}</span></div><div><small>الدفتري وقت العد</small><span>${fmt(x.expected)}</span></div><div><small>الفعلي</small><span>${x.counted === null ? '—' : fmt(x.counted)}</span></div>
+    <div class="${x.status === 'short' ? 'hi' : ''}" style="grid-column:span 3"><small>النتيجة</small><span><span class="res ${x.status}">${RES_TXT[x.status]}</span> ${x.diff ? (x.diff > 0 ? '+' : '') + fmt(x.diff) + ' ' + esc(x.unit) : ''}</span></div></div>
+    ${x.flags.map(f => `<div class="alert warn" style="font-size:13px">⚠ ${esc(f)}</div>`).join('')}
+    ${x.during.length ? `<p class="muted"><b>حركات من وقت فتح الجرد لحد العد (اتحسبت في الدفتري):</b><br>${x.during.map(m => `${m.d ? fmtDT(m.d) : '—'} · ${esc(m.type)} ${esc(m.doc || '')} · ${m.q > 0 ? '+' : ''}${fmt(m.q)}`).join('<br>')}</p>` : ''}
+    ${x.after.length ? `<p class="muted"><b>حركات بعد وقت العد (مش داخلة في المقارنة):</b><br>${x.after.slice(-10).map(m => `${m.d ? fmtDT(m.d) : '—'} · ${esc(m.type)} ${esc(m.doc || '')} · ${m.q > 0 ? '+' : ''}${fmt(m.q)}`).join('<br>')}</p>` : ''}
+    <b style="color:var(--navy)">العدّات</b>${lines.length ? lines.map(l => `<div class="alog">${l.void ? '<s>' : ''}${fmt(l.qty)} ${esc(x.unit)} — ${hm(l.t)} — موبايل ${esc(l.dev)} ${esc(l.by || '')} — ${esc(l.src || '')}${(l.round || 1) !== x.round ? ' — جولة قديمة' : ''}${l.sep ? ' — منفصلة' : ''}${l.note ? ' — ' + esc(l.note) : ''}${l.void ? '</s> (ملغية)' : ''}
+      ${(l.edits || []).map(e => `<br>✏️ ${hm(e.t)}: ${fmt(e.old)} ← ${e.new === null ? 'إلغاء' : fmt(e.new)} — ${esc(e.reason)} (${esc(e.by || '')}${e.role ? ' / ' + esc(e.role) : ''})`).join('')}
+      ${!locked && (l.round || 1) === x.round ? ` <button class="btn ghost" data-e="${esc(l.id)}" style="padding:4px 8px;font-size:12px">تعديل</button>` : ''}</div>`).join('') : '<p class="muted">ما اتعدّش.</p>'}
+    ${x.conflict ? `<div class="alert warn"><b>تعارض: الصنف اتعدّ من أكتر من موبايل</b>${x.devs.map(d => `موبايل ${esc(d)}: ${fmt(lines.filter(l => l.dev === d && !l.void && (l.round || 1) === x.round).reduce((a, l) => a + l.qty, 0))}`).join(' · ')}
+      <div class="btns" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">${x.devs.map(d => `<button class="btn ghost" data-res="dev:${esc(d)}">اعتمد عدّ موبايل ${esc(d)} بس</button>`).join('')}<button class="btn ghost" data-res="sum">اجمعهم (أماكن مختلفة)</button><button class="btn org" data-res="recount">اطلب إعادة عد</button></div></div>` : ''}
+    ${!locked ? `<label>سبب العجز / الزيادة</label><input id="dReason" value="${esc(x.reason)}" placeholder="مثلًا: كسر، صرف ما اتسجلش، خطأ في الإذن"><div class="row" style="margin-top:8px"><button class="btn ghost" id="dSaveR">💾 حفظ السبب</button><button class="btn org" id="dRecount">🔁 طلب إعادة عد</button></div>` : (x.reason ? `<p class="muted">السبب: ${esc(x.reason)}</p>` : '')}</div>`;
+  $('#dClose').onclick = () => { INV.detail = null; refresh(); };
+  box.querySelectorAll('[data-e]').forEach(b => b.onclick = () => editLine(S, b.dataset.e));
+  box.querySelectorAll('[data-res]').forEach(b => b.onclick = async () => { const role = await needRole('review', S.id); if (role === null) return; const S2 = await stkGet(S.id);
+    const ch = b.dataset.res; if (ch === 'recount') return requestRecount(S2, x.code);
+    S2.items[x.code] = Object.assign(S2.items[x.code] || {}, {res: {round: x.round, choice: ch}}); await stkPut(S2); await audit(S.id, 'resolve', {code: x.code, info: ch === 'sum' ? 'جمع العدّات' : 'اعتماد ' + ch}); toast('✓ اتحل التعارض'); refresh(); });
+  if ($('#dSaveR')) { $('#dSaveR').onclick = async () => { const S2 = await stkGet(S.id); const reason = $('#dReason').value.trim(); const old = (S2.items[x.code] || {}).reason || '';
+    S2.items[x.code] = Object.assign(S2.items[x.code] || {}, {reason}); await stkPut(S2); await audit(S.id, 'reason', {code: x.code, old, new: reason}); toast('✓ اتحفظ السبب'); };
+    $('#dRecount').onclick = async () => { const role = await needRole('review', S.id); if (role === null) return; requestRecount(await stkGet(S.id), x.code); }; }
+}
+async function requestRecount(S, code) {
+  const it = S.items[code] || {}; const round = (it.round || 1) + 1;
+  S.items[code] = Object.assign(it, {round, recount: true, res: null}); await stkPut(S); await audit(S.id, 'recount', {code, info: 'جولة ' + round});
+  toast('✓ اتطلب إعادة عد — العد القديم محفوظ في السجل'); refresh();
+}
+
+// ---------- review / approval / settlement ----------
+async function tabReview(S, st, k, B, lines) {
+  const noReason = st.filter(x => (x.status === 'short' || x.status === 'over') && !x.reason).length;
+  const devs = {}; for (const l of lines) devs[l.dev] = (devs[l.dev] || 0) + 1;
+  const block = []; if (k.conflict) block.push(`${k.conflict} صنف عليه تعارض بين موبايلين`); if (k.recount) block.push(`${k.recount} صنف مطلوب إعادة عده ولسه ما اتعدّش`);
+  const warn = []; if (k.remaining) warn.push(`${k.remaining} صنف ما اتعدّش — هيظهر «لم يتم الجرد» (مش صفر)`); if (noReason) warn.push(`${noReason} صنف عليه فرق من غير سبب`); if (k.unknown) warn.push(`${k.unknown} صنف غير معروف`); if (k.flagged) warn.push(`${k.flagged} صنف محتاج مراجعة توقيت (حركات يوم العد من غير وقت)`);
+  let h = `<div class="card"><b style="color:var(--navy)">دورة العمل</b><p class="muted">جرد جديد ← جاري الجرد ← انتهاء العد ← مراجعة الفروق ← إعادة عد عند الحاجة ← اعتماد نهائي ← (تسوية منفصلة)</p>
+    <p class="muted">الموبايلات اللي عدّت: ${Object.keys(devs).map(d => `${esc(d)}${d === DEV.id ? ' (ده)' : ''}: ${devs[d]} عدّة`).join(' · ') || '—'}</p></div>`;
+  if (S.status === 'counting') h += `<div class="card"><button class="btn big" id="rFinish">✅ إنهاء العد</button><p class="muted">بعد إنهاء العد مفيش عدّ جديد غير لو رجعته أو اتطلب إعادة عد.</p></div>`;
+  if (S.status === 'counted') h += `<div class="card"><button class="btn big org" id="rStart">🔎 بدء مراجعة الفروق</button><button class="btn ghost" id="rBack" style="width:100%;margin-top:8px">↩ رجوع للعد</button></div>`;
+  if (S.status === 'review') h += `<div class="card">${block.map(b => `<div class="alert bad">⛔ ${b}</div>`).join('')}${warn.map(w => `<div class="alert warn" style="font-size:14px">${w}</div>`).join('')}
+    <p class="muted">راجع الأصناف من تبويب «📋 الأصناف»: السبب، إعادة العد، حل التعارض، وتصحيح العدّات (بيتسجل في السجل).</p>
+    <button class="btn big" id="rApprove" ${block.length ? 'disabled' : ''}>✍️ اعتماد محضر الجرد</button>${block.length ? '<p class="muted">الاعتماد مقفول لحد ما المشاكل اللي فوق تتحل.</p>' : ''}
+    <button class="btn ghost" id="rBack" style="width:100%;margin-top:8px">↩ رجوع للعد</button></div>`;
+  if (S.status === 'approved') {
+    const A = S.approved; const fr = A.frozen; const diffs = fr.filter(x => x.status === 'short' || x.status === 'over');
+    h += `<div class="card"><div class="alert ok"><b>✓ المحضر معتمد ومقفول</b>اعتمده ${esc(A.by)}${A.role ? ' (' + esc(A.role) + ')' : ''} — ${hm(A.t)}${A.note ? '<br>' + esc(A.note) : ''}</div>
+      <p class="muted">الاعتماد <b>مش</b> تسوية ومش بيغيّر أي رصيد.</p>`;
+    if (!S.settle) h += `<p class="muted">${diffs.length} صنف عليه فرق محتاج تسوية.</p>${diffs.length ? '<button class="btn big org" id="rSettle">📄 إنشاء مستند تسوية</button>' : ''}`;
+    else h += `<div class="alert ok"><b>مستند التسوية ${esc(S.settle.no)}</b>${S.settle.lines.length} صنف — اعتمده ${esc(S.settle.by)}${S.settle.role ? ' (' + esc(S.settle.role) + ')' : ''} — ${hm(S.settle.t)}<br>التسوية اتعملت مرة واحدة ومش هتتكرر.</div>
+      <button class="btn big" id="rPaste">📥 ملف «الجرد الفعلي» للصق في «الرصيد والجرد»</button><button class="btn ghost" id="rSetPrint" style="width:100%;margin-top:8px">🖨️ طباعة مستند التسوية</button>
+      <p class="muted">الملف بيتحسب على آخر ملف مخزن اتستورد على الموبايل. لو الشيت اتغير بعدها، استورد الملف تاني وطلّع ملف اللصق من جديد — الفروق نفسها مش بتتغير.</p>`;
+    h += '</div>';
+  }
+  if (S.status !== 'approved' && S.status !== 'cancelled') h += `<div class="card"><button class="btn red" id="rCancel" style="width:100%">إلغاء الجرد</button></div>`;
+  B.innerHTML = h;
+  const go = async (to, action, info) => { const role = await needRole(action, S.id); if (role === null) return; const S2 = await stkGet(S.id); const from = S2.status; S2.status = to; await stkPut(S2); await audit(S.id, 'status', {old: ST_TXT[from], new: ST_TXT[to], info}); refresh(); };
+  if ($('#rFinish')) $('#rFinish').onclick = async () => { const v = await modal('إنهاء العد؟', `اتعدّ ${k.counted} من ${k.total}.\n${k.remaining ? k.remaining + ' صنف هيفضل «لم يتم الجرد».' : ''}\nاتأكد إن كل الموبايلات بعتت ملفاتها واتدمجت.`, [{t: 'أيوه، أنهي العد', v: 1, cls: 'org'}, {t: 'لا', v: 0, cls: 'ghost'}]); if (v) go('counted', 'finish'); };
+  if ($('#rStart')) $('#rStart').onclick = () => go('review', 'review');
+  if ($('#rBack')) $('#rBack').onclick = () => go('counting', 'edit', 'رجوع للعد');
+  if ($('#rCancel')) $('#rCancel').onclick = async () => { const v = await formModal('إلغاء الجرد؟', 'العدّات بتفضل محفوظة في السجل.', [{id: 'r', label: 'سبب الإلغاء', req: true}], 'إلغاء الجرد'); if (v) go('cancelled', 'cancel', v.r); };
+  if ($('#rApprove')) $('#rApprove').onclick = () => approve(S, st, k, devs);
+  if ($('#rSettle')) $('#rSettle').onclick = () => createSettlement(S);
+  if ($('#rPaste')) $('#rPaste').onclick = () => exportPaste(S);
+  if ($('#rSetPrint')) $('#rSetPrint').onclick = () => printSettlement(S);
+}
+async function approve(S, st, k, devs) {
+  const v = await formModal('✍️ اعتماد محضر الجرد', `${k.counted} صنف اتعدّ — مطابق ${k.match} · عجز ${k.short} · زيادة ${k.over} · لم يُجرد ${k.remaining}\nموبايلات اتدمجت: ${Object.keys(devs).join('، ') || '—'}\n\nبعد الاعتماد المحضر بيتقفل. الاعتماد مش تسوية ومش بيغيّر أي رصيد.`,
+    [{id: 'by', label: 'اسم المعتمد', value: DEV.name || '', req: true}, {id: 'all', label: 'كل الموبايلات اللي عدّت بعتت ملفاتها واتدمجت؟', type: 'select', options: ['أيوه — مفيش بيانات معلقة', 'لا'], value: 'لا'}, {id: 'note', label: 'ملاحظات لجنة الجرد', type: 'area'}], 'اعتماد');
+  if (!v) return; if (v.all !== 'أيوه — مفيش بيانات معلقة') { toast('ادمج ملفات كل الموبايلات الأول من «🔄 مزامنة»'); return; }
+  const role = await needRole('approve', S.id); if (role === null) return;
+  const S2 = await stkGet(S.id); const st2 = await invState(S2); const k2 = kpis(st2); if (k2.conflict || k2.recount) { toast('فيه تعارض أو إعادة عد لسه — مينفعش الاعتماد'); return; }
+  const L = await ledger();
+  S2.approved = {t: new Date().toISOString(), by: v.by, role: INV.role, note: v.note, fileDate: L.date || CAT_DATE, fileSrc: L.src || CAT_SRC,
+    frozen: st2.map(x => ({code: x.code, name: x.name, unit: x.unit, loc: x.loc, book0: x.book0, expected: x.expected, counted: x.counted, diff: x.diff, status: x.status, reason: x.reason, round: x.round, recounted: x.recounted, unknown: x.unknown, flags: x.flags, during: x.during, after: [], lines: [], devs: x.devs, conflict: false, recount: false, countedAt: x.countedAt}))};
+  S2.status = 'approved'; await stkPut(S2); await audit(S.id, 'approve', {by: v.by, info: `مطابق ${k2.match} · عجز ${k2.short} · زيادة ${k2.over} · لم يُجرد ${k2.remaining}`});
+  toast('✓ اتعتمد المحضر واتقفل'); refresh();
+}
+async function createSettlement(S) {
+  const S2 = await stkGet(S.id); if (S2.settle) { toast('التسوية اتعملت قبل كده: ' + S2.settle.no); return refresh(); }
+  if (S2.status !== 'approved') { toast('لازم الجرد يتعتمد الأول'); return; }
+  const diffs = S2.approved.frozen.filter(x => (x.status === 'short' || x.status === 'over') && !x.unknown);
+  const v = await formModal('📄 مستند تسوية', `${diffs.length} صنف (عجز ${diffs.filter(x => x.status === 'short').length} · زيادة ${diffs.filter(x => x.status === 'over').length}).\nالأصناف غير المعروفة مش داخلة.\nالتسوية بتتعمل مرة واحدة بس، وبعدها بتطلع ملف تلصقه بنفسك في الشيت — التطبيق مش بيغيّر الرصيد.`,
+    [{id: 'by', label: 'اسم معتمد التسوية', value: DEV.name || '', req: true}, {id: 'note', label: 'سبب / ملاحظة عامة', type: 'area'}], 'اعتماد التسوية');
+  if (!v) return; const role = await needRole('settle', S.id); if (role === null) return;
+  const S3 = await stkGet(S.id); if (S3.settle) { toast('التسوية اتعملت قبل كده'); return refresh(); }
+  const p = n => String(n).padStart(2, '0'), d = new Date();
+  S3.settle = {no: `ADJ-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}-${DEV.id}`, t: d.toISOString(), by: v.by, role: INV.role, note: v.note,
+    lines: diffs.map(x => ({code: x.code, name: x.name, unit: x.unit, expected: x.expected, counted: x.counted, diff: x.diff, reason: x.reason}))};
+  await stkPut(S3); await audit(S.id, 'settle', {by: v.by, info: S3.settle.no + ' — ' + diffs.length + ' صنف'}); toast('✓ اتعمل مستند التسوية ' + S3.settle.no); refresh();
+}
+
+// ---------- sync (count files between phones) ----------
+function tabSync(S, B, lines) {
+  const devs = Object.entries(S.devices || {});
+  B.innerHTML = `<div class="card"><b style="color:var(--navy)">الموبايل ده</b><p class="muted">رقم الموبايل: <b class="code">${esc(DEV.id)}</b> · القائم بالعد: <b>${esc(DEV.name || '—')}</b> <button class="btn ghost" id="sName" style="padding:4px 8px;font-size:12px">تغيير الاسم</button></p>
+    <button class="btn big" id="sExp">📤 صدّر ملف الجرد (للموبايل الرئيسي أو موبايل تاني)</button>
+    <button class="btn ghost" id="sImp" style="width:100%;margin-top:8px">📥 استورد ملف جرد من موبايل تاني</button><input type="file" id="sFile" accept=".xlsx" class="hide">
+    <p class="muted">الملف فيه بيانات الجرد وكل العدّات اللي على الموبايل ده. الموبايل التاني بيستورده: لو الجرد مش عنده بيتضاف، ولو عنده العدّات الجديدة بس بتتضاف — نفس العدّة مش بتتكرر. نفس الصنف من موبايلين بيظهر «تعارض» لحد ما يتحل. مفيش اعتماد طول ما فيه تعارض.</p></div>
+    <div class="card"><b style="color:var(--navy)">الموبايلات اللي اتدمجت</b>${devs.length ? devs.map(([id, d]) => `<div class="alog"><b class="code">${esc(id)}</b> ${esc(d.name || '')} — ${d.lines} عدّة — آخر استيراد ${hm(d.lastImport)}</div>`).join('') : '<p class="muted">لسه ما اتستوردش ملف من موبايل تاني.</p>'}</div>`;
+  $('#sName').onclick = async () => { const v = await formModal('اسم القائم بالعد', '', [{id: 'n', label: 'الاسم', value: DEV.name, req: true}]); if (v) { DEV.name = v.n; await setMeta('device', DEV); refresh(); } };
+  $('#sExp').onclick = () => exportInvFile(S);
+  $('#sImp').onclick = () => $('#sFile').click(); $('#sFile').onchange = importInvFile;
+}
+async function exportInvFile(S) {
+  const lines = await cntBySid(S.id); const payload = JSON.stringify({kind: 'shams-inv', v: 1, from: {id: DEV.id, name: DEV.name}, at: new Date().toISOString(), session: S, lines});
+  const st = await invState(S); const byC = new Map(st.map(x => [x.code, x]));
+  const rows = [['رقم الجرد', 'الموبايل', 'كود الصنف', 'اسم الصنف', 'الوحدة', 'الكمية', 'الوقت', 'القائم بالعد', 'الجولة', 'الحالة', 'ملاحظة']]
+    .concat(lines.sort((a, b) => a.t.localeCompare(b.t)).map(l => [S.no, l.dev, {s: l.code}, (byC.get(l.code) || {}).name || l.uname, (byC.get(l.code) || {}).unit || l.uunit, l.qty, hm(l.t), l.by, l.round || 1, l.void ? 'ملغية' : 'سارية', l.note || '']));
+  const chunks = []; for (let i = 0; i < payload.length; i += 30000) chunks.push([payload.slice(i, i + 30000)]);
+  const blob = xlsxBook([{name: 'العدّات', title: `ملف جرد ${S.no} — موبايل ${DEV.id} — ${hm(new Date().toISOString())}`, rows, widths: [26, 8, 26, 40, 8, 10, 17, 16, 7, 8, 20]}, {name: 'data', rows: [['shams-inv']].concat(chunks), raw: true}]);
+  const fn = `جرد_${S.no}_${DEV.id}_${today()}.xlsx`;
+  if (await saveBlob(blob, fn, `${lines.length} عدّة`)) { const S2 = await stkGet(S.id); S2.exports = Object.assign(S2.exports || {}, {[DEV.id]: new Date().toISOString()}); await stkPut(S2); await audit(S.id, 'export', {info: fn + ' — ' + lines.length + ' عدّة'}); refresh(); }
+}
+async function importInvFile(e) {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return; await devInit();
+  let P; try {
+    const z = await unzip(await f.arrayBuffer()); const x = z['xl/worksheets/sheet2.xml'] ? await z['xl/worksheets/sheet2.xml']() : '';
+    const ts = [...x.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(m => m[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&'));
+    if (ts[0] !== 'shams-inv') throw new Error('الملف ده مش ملف جرد من التطبيق.'); P = JSON.parse(ts.slice(1).join(''));
+  } catch (x) { toast('مقدرتش أقرا ملف الجرد: ' + x.message, 4000); return; }
+  const inS = P.session; let S = await stkGet(inS.id); let created = false;
+  if (!S) { S = Object.assign({}, inS, {local: false, devices: {}, exports: {}}); created = true; }
+  else if (P.from.id === S.origin && (inS.mt || '') > (S.mt || '')) { // owner's file: take its review decisions / status
+    for (const k of ['status', 'items', 'approved', 'settle', 'committee', 'notes', 'type', 'store', 'owner']) S[k] = inS[k]; }
+  if (S.status === 'approved' && !created && P.from.id !== S.origin) { const local = await cntBySid(S.id); const nw = P.lines.filter(l => !local.some(x => x.id === l.id)); if (nw.length) { toast('الجرد ده معتمد ومقفول — العدّات الجديدة اتجاهلت', 4000); return; } }
+  const local = new Map((await cntBySid(S.id)).map(l => [l.id, l])); let added = 0, updated = 0;
+  for (const l of P.lines) { const o = local.get(l.id); if (!o) { await cntPut(l); added++; } else if ((l.mt || l.t) > (o.mt || o.t)) { await cntPut(l); updated++; } }
+  S.devices = S.devices || {}; S.devices[P.from.id] = {name: P.from.name || '', lastImport: new Date().toISOString(), lines: P.lines.filter(l => l.dev === P.from.id).length};
+  await tx('stk', 'readwrite', s => s.put(S));
+  await audit(S.id, created ? 'import-session' : 'merge', {info: `ملف «${f.name}» من موبايل ${P.from.id} ${P.from.name || ''} — ${added} عدّة جديدة، ${updated} اتحدّثت، ${P.lines.length - added - updated} متكررة اتجاهلت`});
+  toast(`✓ ${created ? 'اتضاف الجرد ' + S.no + ' — ' : ''}${added} عدّة جديدة${updated ? '، ' + updated + ' اتحدّثت' : ''}`, 3500);
+  INV.sid = S.id; INV.tab = created ? 'count' : 'sync'; showPage('pInv');
+}
+
+// ---------- files ----------
+function xlsxBook(sheets) {
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="165" formatCode="#,##0.###"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="13"/><color rgb="FF1F3B73"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F3B73"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf/><xf fontId="1" fillId="2" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="49" applyNumberFormat="1"/><xf numFmtId="165" applyNumberFormat="1"/><xf fontId="2" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const col = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  const xml = sh => { const out = []; let r = 1;
+    if (sh.title) { out.push(`<row r="1">${S('A1', sh.title, 4)}</row>`); r = 3; }
+    const startHdr = r;
+    sh.rows.forEach((row, i) => { const rr = (sh.at && sh.at[i]) || r; out.push(`<row r="${rr}">${row.map((v, j) => { const ref = col(j) + rr; if (v === null || v === undefined || v === '') return '';
+      if (typeof v === 'object') return S(ref, v.s, 2); if (typeof v === 'number') return N(ref, v, 3); return S(ref, v, !sh.raw && rr === startHdr && !sh.noHdr ? 1 : 0); }).join('')}</row>`); r = rr + 1; });
+    const cols = (sh.widths || []).map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView rightToLeft="1" workbookViewId="0"/></sheetViews>${cols ? '<cols>' + cols + '</cols>' : ''}<sheetData>${out.join('')}</sheetData></worksheet>`; };
+  const ct = sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  const files = [
+    {name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${ct}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
+    {name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"${s.raw ? ' state="hidden"' : ''}/>`).join('')}</sheets></workbook>`},
+    {name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name: 'xl/styles.xml', data: styles}].concat(sheets.map((s, i) => ({name: `xl/worksheets/sheet${i + 1}.xml`, data: xml(s)})));
+  return zipStore(files);
+}
+async function saveBlob(blob, fn, what) {
+  const file = new File([blob], fn, {type: blob.type}); let how = 'download';
+  if (navigator.canShare && navigator.canShare({files: [file]})) { how = await modal('ابعت الملف إزاي؟', `${what} — ${fn}`, [{t: '📨 مشاركة (واتساب / إيميل / Drive)', v: 'share', cls: 'org'}, {t: '⬇️ حفظ في التنزيلات', v: 'download'}, {t: 'إلغاء', v: null, cls: 'ghost'}]); if (!how) return false; }
+  try { if (how === 'share') await navigator.share({files: [file], title: fn});
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+    window.__lastInvFile = {fn, blob}; return true;
+  } catch (e) { if (e.name !== 'AbortError') toast('مقدرتش أبعت الملف: ' + e.message); return false; }
+}
+
+// «الجرد الفعلي» paste file: same rows as «الرصيد والجرد», value = latest book + approved difference,
+// so the sheet's own «الفرق» formula shows exactly the approved difference.
+async function exportPaste(S) {
+  const S2 = await stkGet(S.id); if (!S2.settle) { toast('لازم مستند التسوية الأول'); return; }
+  const c = await getMeta('catalog'); if (!c || !c.physCol || !c.rows.length || c.rows[0][7] === undefined) { toast('استورد ملف المخزن تاني من «تصدير وإعدادات» (النسخة دي محتاجة أرقام الصفوف).', 4500); return; }
+  const by = new Map(c.rows.map(r => [r[0], r])); const missing = []; const out = [];
+  for (const x of S2.settle.lines) { const r = by.get(x.code); if (!r) { missing.push(x); continue; } const book = r[3] || 0; out.push({row: r[7], code: x.code, name: x.name, book, diff: x.diff, val: r3(book + x.diff)}); }
+  out.sort((a, b) => a.row - b.row);
+  const colIdx = c.physCol.split('').reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+  const at = [], rows = []; for (const o of out) { const row = []; row[colIdx] = o.val; rows.push(row); at.push(o.row); }
+  const info = [['مستند التسوية', S2.settle.no], ['رقم الجرد', S2.no], ['اتحسب على ملف', c.src + ' بتاريخ ' + c.date], ['الطريقة', `حدد من ${c.physCol}${(c.hdrRow || 5) + 1} لحد آخر صف ← نسخ ← في «الرصيد والجرد» اقف على ${c.physCol}${(c.hdrRow || 5) + 1} ← لصق خاص ← قيم + تخطي الفراغات`],
+    ['ليه القيمة كده؟', 'القيمة = الرصيد الدفتري في الملف + فرق الجرد المعتمد، فعمود «الفرق» في الشيت هيطلع نفس الفرق المعتمد بالظبط حتى لو الرصيد اتحرك بعد العد.'], ['تنبيه', 'ده مش بيغيّر الرصيد الدفتري. تسجيل التسوية على السيستم إجراء منفصل.']];
+  if (missing.length) info.push(['أصناف مش لاقيها في الملف', missing.map(x => x.code).join('، ')]);
+  const detail = [['الصف في الشيت', 'كود الصنف', 'اسم الصنف', 'الرصيد الدفتري (الملف)', 'فرق الجرد المعتمد', 'القيمة في «الجرد الفعلي»']].concat(out.map(o => [o.row, {s: o.code}, o.name, o.book, o.diff, o.val]));
+  const blob = xlsxBook([{name: 'الجرد الفعلي — للصق', rows, at, noHdr: true, widths: Array(colIdx + 1).fill(12)}, {name: 'شرح', rows: info, noHdr: true, widths: [24, 110]}, {name: 'تفاصيل', title: 'تفاصيل ' + S2.settle.no, rows: detail, widths: [10, 26, 40, 16, 16, 18]}]);
+  const fn = `الجرد_الفعلي_للصق_${S2.no}.xlsx`;
+  if (await saveBlob(blob, fn, out.length + ' صنف')) await audit(S.id, 'paste-file', {info: fn + ' — ' + out.length + ' صنف — ملف ' + c.src});
+}
+
+// ---------- reports ----------
+const REPORTS = [['all', 'محضر الجرد الشامل'], ['short', 'تقرير العجز'], ['over', 'تقرير الزيادة'], ['match', 'الأصناف المطابقة'], ['none', 'الأصناف غير المجردة'], ['recount', 'الأصناف اللي اتعاد جردها'], ['settle', 'التسوية المعتمدة']];
+function tabReports(S, B) {
+  B.innerHTML = `<div class="card"><label for="rpK">التقرير</label><select id="rpK">${REPORTS.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+    <div class="row" style="margin-top:10px"><button class="btn" id="rpP">🖨️ طباعة A4 / PDF</button><button class="btn ghost" id="rpX">📊 Excel</button></div>
+    <p class="muted">${S.status === 'approved' ? 'بيانات المحضر المعتمد (مقفولة).' : 'بيانات الجرد الحالية — مش معتمدة لسه، والتقرير هيتكتب عليه «مسودة».'} الـPDF من نافذة الطباعة على الموبايل أو الكمبيوتر.</p></div>`;
+  $('#rpP').onclick = async () => { const k = $('#rpK').value; if (k === 'settle') return printSettlement(await stkGet(S.id)); printInv(await stkGet(S.id), k); };
+  $('#rpX').onclick = async () => excelInv(await stkGet(S.id), $('#rpK').value);
+}
+const pickRows = (st, k) => k === 'all' ? st : k === 'recount' ? st.filter(x => x.recounted) : st.filter(x => x.status === k);
+async function printInv(S, kind) {
+  const st = await frozenOrLive(S), k = kpis(st), rows = pickRows(st, kind); const co = (await getMeta('company')) || ''; const title = (REPORTS.find(r => r[0] === kind) || [0, 'محضر جرد'])[1];
+  const now = new Date().toISOString(); const draft = S.status !== 'approved';
+  $('#printArea').innerHTML = `<div class="hdr"><div><div style="font-weight:bold;font-size:13px">${esc(co || '—')}</div><div>${esc(S.store)}</div><h1>${esc(title)}${draft ? ' — مسودة (غير معتمد)' : ''}</h1></div>
+    <div style="text-align:left">رقم المحضر: <span class="n">${esc(S.no)}</span><br>تاريخ ووقت الجرد: <span class="n">${hm(S.createdAt)}</span><br>تاريخ الاستخراج: <span class="n">${hm(now)}</span></div></div>
+    <div class="info"><div><b>نوع الجرد:</b> ${esc(S.type)}</div><div><b>المسؤول:</b> ${esc(S.owner)}</div><div style="grid-column:span 2"><b>لجنة الجرد:</b> ${esc(S.committee.join('، ') || '—')}</div>
+    <div style="grid-column:span 2"><b>مرجع الأرصدة:</b> ملف ${esc(S.snap.src)} (${esc(S.snap.date)})</div><div><b>الحالة:</b> ${ST_TXT[S.status]}${S.approved ? ' — ' + esc(S.approved.by) + ' ' + hm(S.approved.t) : ''}</div><div><b>النطاق:</b> ${S.scope.all ? 'كل الأصناف' : esc(S.scope.zones.join('، '))}</div></div>
+    <table><thead><tr><th>م</th><th>كود الصنف</th><th>اسم الصنف</th><th>الوحدة</th><th>الرصيد الدفتري</th><th>الكمية الفعلية</th><th>العجز</th><th>الزيادة</th><th>الحالة</th><th>ملاحظات</th></tr></thead><tbody>
+    ${rows.map((x, i) => `<tr><td class="n">${i + 1}</td><td class="n">${esc(x.code)}</td><td>${esc(x.name)}${x.unknown ? ' (غير معروف)' : ''}</td><td>${esc(x.unit)}</td><td class="n">${fmt(x.expected)}</td><td class="n">${x.counted === null ? '—' : fmt(x.counted)}</td><td class="n">${x.status === 'short' ? fmt(-x.diff) : ''}</td><td class="n">${x.status === 'over' ? fmt(x.diff) : ''}</td><td>${RES_TXT[x.status]}${x.recounted ? ' · أعيد العد' : ''}</td><td>${esc([x.reason, x.flags.length && x.status !== 'none' ? '⚠ ' + x.flags.join(' / ') : ''].filter(Boolean).join(' — '))}</td></tr>`).join('') || '<tr><td colspan="10">مفيش أصناف</td></tr>'}
+    </tbody></table>
+    <div class="sum4"><div>إجمالي الأصناف<br><b>${k.total}</b></div><div>المطابقة<br><b>${k.match}</b></div><div>العجز<br><b>${k.short}</b></div><div>الزيادة<br><b>${k.over}</b></div><div>لم يتم جردها<br><b>${k.remaining}</b></div><div>نسبة الاكتمال<br><b>${k.pct}%</b></div></div>
+    <div class="note"><b>ملاحظات لجنة الجرد:</b> ${esc([S.notes, S.approved && S.approved.note].filter(Boolean).join(' — ') || '—')}</div>
+    <div class="note">الرصيد الدفتري = الرصيد وقت عدّ الصنف (رصيد الملف + الحركات اللي حصلت قبل العد). الصنف اللي ما اتعدّش مش بيتحسب صفر. المحضر مش بيغيّر أي رصيد — التسوية مستند منفصل.</div>
+    <div class="sig s4"><div><b>القائم بالجرد</b><br><br>الاسم: ....................<br>التوقيع: ....................</div><div><b>أمين المخزن</b><br><br>الاسم: ....................<br>التوقيع: ....................</div><div><b>المراجع</b><br><br>الاسم: ....................<br>التوقيع: ....................</div><div><b>مدير المخازن</b><br><br>الاسم: ....................<br>التوقيع: ....................</div></div>`;
+  await audit(S.id, 'print', {info: title});
+  setTimeout(() => window.print(), 60);
+}
+async function printSettlement(S) {
+  if (!S.settle) { toast('مفيش مستند تسوية لسه'); return; } const co = (await getMeta('company')) || ''; const T = S.settle;
+  $('#printArea').innerHTML = `<div class="hdr"><div><div style="font-weight:bold;font-size:13px">${esc(co || '—')}</div><div>${esc(S.store)}</div><h1>مستند تسوية جرد</h1></div><div style="text-align:left">رقم المستند: <span class="n">${esc(T.no)}</span><br>رقم الجرد: <span class="n">${esc(S.no)}</span><br>التاريخ: <span class="n">${hm(T.t)}</span></div></div>
+    <table><thead><tr><th>م</th><th>كود الصنف</th><th>اسم الصنف</th><th>الوحدة</th><th>الرصيد قبل التسوية</th><th>الفعلي</th><th>الفرق</th><th>الرصيد بعد التسوية</th><th>السبب</th></tr></thead><tbody>
+    ${T.lines.map((x, i) => `<tr><td class="n">${i + 1}</td><td class="n">${esc(x.code)}</td><td>${esc(x.name)}</td><td>${esc(x.unit)}</td><td class="n">${fmt(x.expected)}</td><td class="n">${fmt(x.counted)}</td><td class="n">${x.diff > 0 ? '+' : ''}${fmt(x.diff)}</td><td class="n">${fmt(x.counted)}</td><td>${esc(x.reason || '—')}</td></tr>`).join('')}</tbody></table>
+    <div class="note">اعتمد التسوية: ${esc(T.by)}${T.role ? ' (' + esc(T.role) + ')' : ''}${T.note ? ' — ' + esc(T.note) : ''}. التسوية اتعملت مرة واحدة. التطبيق مش بيغيّر الرصيد — التسجيل في الشيت/السيستم بيتم يدوي.</div>
+    <div class="sig s4"><div><b>أمين المخزن</b><br><br>التوقيع: ....................</div><div><b>المراجع</b><br><br>التوقيع: ....................</div><div><b>مدير المخازن</b><br><br>التوقيع: ....................</div><div><b>الحسابات</b><br><br>التوقيع: ....................</div></div>`;
+  setTimeout(() => window.print(), 60);
+}
+async function excelInv(S, kind) {
+  if (kind === 'settle') { if (!S.settle) { toast('مفيش مستند تسوية لسه'); return; } return exportPaste(S); }
+  const st = await frozenOrLive(S), rows = pickRows(st, kind); const title = (REPORTS.find(r => r[0] === kind) || [0, ''])[1];
+  const data = [['كود الصنف', 'اسم الصنف', 'الوحدة', 'الموقع', 'الدفتري وقت فتح الجرد', 'الدفتري وقت العد', 'الكمية الفعلية', 'العجز', 'الزيادة', 'الحالة', 'جولة العد', 'السبب', 'تنبيهات']]
+    .concat(rows.map(x => [{s: x.code}, x.name, x.unit, x.loc, x.book0 ?? '', x.expected, x.counted === null ? 'لم يتم الجرد' : x.counted, x.status === 'short' ? -x.diff : '', x.status === 'over' ? x.diff : '', RES_TXT[x.status], x.round, x.reason, x.status !== 'none' ? x.flags.join(' / ') : '']));
+  const blob = xlsxBook([{name: 'تقرير', title: `${title} — ${S.no} — ${ST_TXT[S.status]}${S.status === 'approved' ? '' : ' (مسودة)'}`, rows: data, widths: [26, 40, 8, 9, 14, 14, 13, 10, 10, 12, 8, 26, 40]}]);
+  if (await saveBlob(blob, `${title.replace(/\s+/g, '_')}_${S.no}.xlsx`, rows.length + ' صنف')) await audit(S.id, 'excel', {info: title});
+}
+async function compareRounds(list) {
+  const ok = list.filter(S => S.status !== 'cancelled'); if (ok.length < 2) { toast('محتاج جردين على الأقل'); return; }
+  const names = ok.map(S => `${S.no} — ${ST_TXT[S.status]}`);
+  const v = await formModal('📊 مقارنة جولتين', 'بيقارن الكمية الفعلية والفرق لكل صنف بين جردين.', [{id: 'a', label: 'الجرد الأول', type: 'select', options: names, value: names[1]}, {id: 'b', label: 'الجرد التاني', type: 'select', options: names, value: names[0]}], 'طلّع Excel');
+  if (!v || v.a === v.b) return; const A = ok[names.indexOf(v.a)], Bs = ok[names.indexOf(v.b)];
+  const sa = new Map((await frozenOrLive(A)).map(x => [x.code, x])), sb = new Map((await frozenOrLive(Bs)).map(x => [x.code, x]));
+  const codes = [...new Set([...sa.keys(), ...sb.keys()])].sort();
+  const data = [['كود الصنف', 'اسم الصنف', 'الوحدة', `فعلي ${A.no}`, `فرق ${A.no}`, `فعلي ${Bs.no}`, `فرق ${Bs.no}`, 'تغيّر الفعلي', 'ملاحظة']].concat(codes.map(c => { const a = sa.get(c), b = sb.get(c); const x = a || b;
+    return [{s: c}, x.name, x.unit, a && a.counted !== null ? a.counted : '—', a && a.diff !== null ? a.diff : '', b && b.counted !== null ? b.counted : '—', b && b.diff !== null ? b.diff : '', a && b && a.counted !== null && b.counted !== null ? r3(b.counted - a.counted) : '', !a ? 'مش في الأول' : !b ? 'مش في التاني' : '']; }));
+  await saveBlob(xlsxBook([{name: 'مقارنة', title: `مقارنة ${A.no} ↔ ${Bs.no}`, rows: data, widths: [26, 40, 8, 14, 12, 14, 12, 12, 14]}]), `مقارنة_جرد_${A.no}_${Bs.no}.xlsx`, codes.length + ' صنف');
+}
+function tabLog(S, B) {
+  const T = {create: 'إنشاء الجرد', count: 'عدّ', edit: 'تعديل عدّة', void: 'إلغاء عدّة', status: 'تغيير الحالة', reason: 'سبب الفرق', recount: 'طلب إعادة عد', resolve: 'حل تعارض', approve: 'اعتماد المحضر', settle: 'مستند تسوية', export: 'تصدير ملف جرد',
+    'import-session': 'استيراد جرد', merge: 'دمج ملف جرد', 'paste-file': 'ملف «الجرد الفعلي»', print: 'طباعة', excel: 'Excel', 'add-item': 'إضافة صنف للجرد', 'pin-refused': '⛔ رقم سري غلط'};
+  audBySid(S.id).then(a => { a.sort((x, y) => y.t.localeCompare(x.t));
+    B.innerHTML = `<div class="card"><b style="color:var(--navy)">سجل التدقيق (${a.length})</b><p class="muted">كل عملية على الجرد بتتسجل هنا ومش بتتمسح.</p>${a.map(e => `<div class="alog"><b>${esc(T[e.action] || e.action)}</b> — ${hm(e.t)} — موبايل ${esc(e.dev)} ${esc(e.devName || e.by || '')}${e.role ? ' / ' + esc(e.role) : ''}${e.code ? ` — <span class="code">${esc(e.code)}</span>` : ''}${e.qty !== undefined ? ' — ' + fmt(e.qty) : ''}${e.old !== undefined ? ` — ${esc(e.old === null ? '—' : e.old)} ← ${esc(e.new === null ? 'إلغاء' : e.new)}` : ''}${e.reason ? ' — ' + esc(e.reason) : ''}${e.info ? ' — ' + esc(e.info) : ''}${e.what ? ' — ' + esc(e.what) : ''}</div>`).join('')}</div>`; });
+}
+
+// ---------- issue/receipt screen: show whether the item is being counted ----------
+async function invIssueHint(code) {
+  if (!db) return; const all = (await stkAll()).filter(S => ['counting', 'counted', 'review'].includes(S.status)); if (!all.length) return;
+  const out = [];
+  for (const S of all) { if (!S.snap.rows[code] && !(S.items[code] && S.items[code].added)) continue;
+    const ls = (await cntBySid(S.id)).filter(l => l.code === code && !l.void);
+    if (ls.length) out.push(`🧮 الصنف ده اتعدّ في الجرد ${S.no} (${hm(ls.map(l => l.t).sort().pop())}). الحركة دي هتتحسب بعد العد — مش هتعمل فرق وهمي.`);
+    else out.push(`🧮 الصنف ده ضمن الجرد ${S.no} ولسه ما اتعدّش. الحركة هتتحسب قبل العد — اعدّه بعد ما الصرف يخلص.`); }
+  if (out.length) $('#lookupBox').insertAdjacentHTML('beforeend', out.map(t => `<div class="alert warn" style="font-size:13px">${esc(t)}</div>`).join(''));
+}
+
+
 // ---------------- boot ----------------
 (async () => {
   try { await openDB(); } catch (e) { $('#camErr').textContent = 'التخزين على الموبايل مش شغال في الوضع ده (ممكن تصفح خفي). العمليات مش هتتحفظ.'; $('#camErr').classList.remove('hide'); }
@@ -11141,7 +11783,7 @@ $('#coName').onchange = async () => { await setMeta('company', $('#coName').valu
   try { POS = (db && await getMeta('pos')) || []; } catch (e) {}
   setMode(mode); if (db) fillSup();
   try { $('#coName').value = (db && await getMeta('company')) || ''; } catch (e) {}
-  if (FLAVOR === 'dev') { const b = document.createElement('div'); b.className = 'devbar'; b.textContent = 'نسخة تطوير — كارت الصنف (مش نسخة التشغيل)'; document.body.prepend(b); }
+  if (FLAVOR === 'dev') { const b = document.createElement('div'); b.className = 'devbar'; b.textContent = 'نسخة تطوير (مش نسخة التشغيل)'; document.body.prepend(b); }
   if (db) { fillRcpts(); updateCount(); }
   try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
   swSetup();
